@@ -412,13 +412,13 @@ export function CheckoutPage() {
                             <div className="text-right rtl:text-left">
                               <div className={`text-base font-bold ${method.id === 'crypto' && isCryptoDisabled ? 'text-gray-500' : 'text-primary-600'}`}>
                                 {paymentMethod === method.id ? (
-                                  `${currencySymbol}${total.toFixed(2)}`
+                                  `${currencySymbol}${paymentMethod === 'edahabia' ? Math.round(total) : total.toFixed(2)}`
                                 ) : method.id === 'edahabia' ? (
-                                  `دج${cart.reduce((sum, item) => {
+                                  `دج${Math.round(cart.reduce((sum, item) => {
                                     const product = item.product!;
                                     const price = product.price_dzd || (product.price_usd * state.settings.exchange_rate_usd_to_dzd);
                                     return sum + (price * item.quantity);
-                                  }, 0).toFixed(2)}`
+                                  }, 0))}`
                                 ) : (
                                   `$${totalUSD.toFixed(2)}`
                                 )}
@@ -474,7 +474,7 @@ export function CheckoutPage() {
                               </div>
                               <div className="text-right">
                                 <p className="font-semibold text-secondary-900 text-sm">
-                                  {currencySymbol}{(price * item.quantity).toFixed(2)}
+                                  {currencySymbol}{paymentMethod === 'edahabia' ? Math.round(price * item.quantity) : (price * item.quantity).toFixed(2)}
                                 </p>
                               </div>
                             </div>
@@ -492,7 +492,7 @@ export function CheckoutPage() {
                       <div className="border-t pt-4 space-y-3">
                         <div className="flex justify-between text-secondary-600">
                           <span>{state.language === 'ar' ? 'المجموع الفرعي:' : 'Subtotal:'}</span>
-                          <span>{currencySymbol}{total.toFixed(2)}</span>
+                          <span>{currencySymbol}{paymentMethod === 'edahabia' ? Math.round(total) : total.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between text-secondary-600">
                           <span>{state.language === 'ar' ? 'الرسوم:' : 'Fees:'}</span>
@@ -500,7 +500,7 @@ export function CheckoutPage() {
                         </div>
                         <div className="flex justify-between items-center text-xl font-bold text-secondary-900 pt-3 border-t">
                           <span>{state.language === 'ar' ? 'المجموع:' : 'Total:'}</span>
-                          <span className="text-primary-600">{currencySymbol}{total.toFixed(2)}</span>
+                          <span className="text-primary-600">{currencySymbol}{paymentMethod === 'edahabia' ? Math.round(total) : total.toFixed(2)}</span>
                         </div>
                       </div>
 
@@ -538,7 +538,7 @@ export function CheckoutPage() {
                         ) : (
                           <>
                             <Lock className="w-5 h-5 mr-2 rtl:ml-2 rtl:mr-0" />
-                            {state.language === 'ar' ? 'ادفع الآن' : 'Pay Now'} {currencySymbol}{total.toFixed(2)}
+                            {state.language === 'ar' ? 'ادفع الآن' : 'Pay Now'} {currencySymbol}{paymentMethod === 'edahabia' ? Math.round(total) : total.toFixed(2)}
                           </>
                         )}
                       </button>

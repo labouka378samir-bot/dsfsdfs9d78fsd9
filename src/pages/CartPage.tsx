@@ -109,7 +109,7 @@ export function CartPage() {
                           {currencySymbol}{(price * 1.3).toFixed(2)}
                         </span>
                         <span className="text-sm sm:text-base text-secondary-600 font-medium">
-                          {currencySymbol}{price.toFixed(2)} each
+                          {currencySymbol}{state.currency === 'DZD' ? Math.round(price) : price.toFixed(2)} each
                         </span>
                       </div>
                     </div>
@@ -136,7 +136,7 @@ export function CartPage() {
                       {/* Item Total */}
                       <div className="text-center xs:text-right">
                         <p className="text-base sm:text-lg font-bold text-secondary-900">
-                          {currencySymbol}{(price * item.quantity).toFixed(2)}
+                          {currencySymbol}{state.currency === 'DZD' ? Math.round(price * item.quantity) : (price * item.quantity).toFixed(2)}
                         </p>
                       </div>
 
@@ -161,20 +161,20 @@ export function CartPage() {
             <div className="space-y-3 sm:space-y-4">
               <div className="flex justify-between">
                 <span className="text-sm sm:text-base text-secondary-600">{t('common.subtotal')}</span>
-                <span className="text-sm sm:text-base text-secondary-900">{currencySymbol}{subtotal.toFixed(2)}</span>
+                <span className="text-sm sm:text-base text-secondary-900">{currencySymbol}{state.currency === 'DZD' ? Math.round(subtotal) : subtotal.toFixed(2)}</span>
               </div>
               
               {tax > 0 && (
                 <div className="flex justify-between">
                   <span className="text-sm sm:text-base text-secondary-600">{t('common.tax')}</span>
-                  <span className="text-sm sm:text-base text-secondary-900">{currencySymbol}{tax.toFixed(2)}</span>
+                  <span className="text-secondary-900">{currencySymbol}{state.currency === 'DZD' ? Math.round(tax) : tax.toFixed(2)}</span>
                 </div>
               )}
               
               <div className="border-t pt-3 sm:pt-4">
                 <div className="flex justify-between text-base sm:text-lg font-bold">
                   <span>{t('common.total')}</span>
-                  <span className="text-primary-500">{currencySymbol}{total.toFixed(2)}</span>
+                  <span className="text-primary-500">{currencySymbol}{state.currency === 'DZD' ? Math.round(total) : total.toFixed(2)}</span>
                 </div>
               </div>
             </div>

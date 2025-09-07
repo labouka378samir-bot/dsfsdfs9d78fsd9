@@ -198,11 +198,6 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                           <div className="flex-1">
                             <div className="flex items-center space-x-2 rtl:space-x-reverse">
                               <h4 className="font-semibold text-gray-900">{variantName}</h4>
-                              {variant.is_default && (
-                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
-                                  {state.language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
-                                </span>
-                              )}
                               {isOutOfStock && (
                                 <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium">
                                   {state.language === 'ar' ? 'نفد المخزون' : 'Out of Stock'}
@@ -220,7 +215,7 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-primary-600">
-                              {currencySymbol}{variantPrice.toFixed(2)}
+                              {currencySymbol}{state.currency === 'DZD' ? Math.round(variantPrice) : variantPrice.toFixed(2)}
                             </div>
                             {!isOutOfStock && (
                               <div className="text-xs text-gray-500">
@@ -250,11 +245,11 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                 <div className="text-right">
                   {/* Original Price (crossed out) */}
                   <div className="text-lg text-gray-500 line-through">
-                    {currencySymbol}{(price * 1.3).toFixed(2)}
+                    {currencySymbol}{state.currency === 'DZD' ? Math.round(price * 1.3) : (price * 1.3).toFixed(2)}
                   </div>
                   {/* Discounted Price */}
                   <div className="text-3xl font-bold text-primary-500">
-                    {currencySymbol}{price.toFixed(2)}
+                    {currencySymbol}{state.currency === 'DZD' ? Math.round(price) : price.toFixed(2)}
                   </div>
                 </div>
               </div>
@@ -283,7 +278,7 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
               <div className="flex items-center justify-between border-t pt-4">
                 <span className="text-xl font-bold text-gray-900">{t('common.total')}:</span>
                 <span className="text-3xl font-bold text-green-600">
-                  {currencySymbol}{totalPrice.toFixed(2)}
+                  {currencySymbol}{state.currency === 'DZD' ? Math.round(totalPrice) : totalPrice.toFixed(2)}
                 </span>
               </div>
             </div>

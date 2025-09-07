@@ -260,7 +260,7 @@ export function OrdersPage() {
                             <Calendar className="h-4 w-4 mr-1 rtl:ml-1 rtl:mr-0" />
                             {new Date(order.created_at).toLocaleDateString()}
                           </span>
-                          <span>{currencySymbol}{order.total_amount.toFixed(2)}</span>
+                          <span>{currencySymbol}{order.currency === 'DZD' ? Math.round(order.total_amount) : order.total_amount.toFixed(2)}</span>
                           <span className="capitalize">{order.payment_method}</span>
                         </div>
                       </div>
@@ -312,7 +312,7 @@ export function OrdersPage() {
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
                               <p className="text-xs text-gray-500">
-                                Qty: {item.quantity} × {currencySymbol}{item.unit_price.toFixed(2)}
+                                Qty: {item.quantity} × {currencySymbol}{order.currency === 'DZD' ? Math.round(item.unit_price) : item.unit_price.toFixed(2)}
                               </p>
                               {item.delivery_status === 'delivered' ? (
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-3 mt-2">

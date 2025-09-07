@@ -99,11 +99,11 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
               <div className="flex flex-col">
                 <span className="text-xs text-secondary-400 line-through">
                   {currencySymbol}
-                  {(price * 1.3).toFixed(2)}
+                  {state.currency === 'DZD' ? Math.round(price * 1.3) : (price * 1.3).toFixed(2)}
                 </span>
                 <span className="text-xl font-bold text-primary-600">
                   {currencySymbol}
-                  {price.toFixed(2)}
+                  {state.currency === 'DZD' ? Math.round(price) : price.toFixed(2)}
                 </span>
               </div>
               {product.duration_days > 0 && (

@@ -445,19 +445,19 @@ export function OrderSuccessPage() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal:</span>
-                  <span className="text-gray-900">{currencySymbol}{order.subtotal.toFixed(2)}</span>
+                  <span className="text-gray-900">{currencySymbol}{order.currency === 'DZD' ? Math.round(order.subtotal) : order.subtotal.toFixed(2)}</span>
                 </div>
                 
                 {order.tax_amount > 0 && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Tax:</span>
-                    <span className="text-gray-900">{currencySymbol}{order.tax_amount.toFixed(2)}</span>
+                    <span className="text-gray-900">{currencySymbol}{order.currency === 'DZD' ? Math.round(order.tax_amount) : order.tax_amount.toFixed(2)}</span>
                   </div>
                 )}
                 
                 <div className="flex justify-between text-lg font-bold border-t pt-2">
                   <span>Total:</span>
-                  <span className="text-green-600">{currencySymbol}{order.total_amount.toFixed(2)}</span>
+                  <span className="text-green-600">{currencySymbol}{order.currency === 'DZD' ? Math.round(order.total_amount) : order.total_amount.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -491,10 +491,10 @@ export function OrderSuccessPage() {
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900">{name}</h3>
                           <p className="text-sm text-gray-600">
-                            Quantity: {item.quantity} × {currencySymbol}{item.unit_price.toFixed(2)}
+                            Quantity: {item.quantity} × {currencySymbol}{order.currency === 'DZD' ? Math.round(item.unit_price) : item.unit_price.toFixed(2)}
                           </p>
                           <p className="text-sm font-medium text-gray-900">
-                            Total: {currencySymbol}{item.total_price.toFixed(2)}
+                            Total: {currencySymbol}{order.currency === 'DZD' ? Math.round(item.total_price) : item.total_price.toFixed(2)}
                           </p>
                           
                           {/* Delivery Status */}
