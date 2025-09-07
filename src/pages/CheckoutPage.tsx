@@ -49,13 +49,13 @@ export function CheckoutPage() {
 
   // Redirect if cart is empty
   useEffect(() => {
-    // Add a small delay to allow cart to load
+    // Add a longer delay to allow cart to load properly
     const timer = setTimeout(() => {
       if (cart.length === 0) {
         toast.error(state.language === 'ar' ? 'السلة فارغة' : 'Cart is empty');
         navigate('/');
       }
-    }, 500);
+    }, 1000);
     
     return () => clearTimeout(timer);
   }, [cart, navigate, state.language]);

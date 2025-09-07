@@ -101,10 +101,14 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
       // Close modal and go directly to checkout
       onClose();
       
-      // Navigate to checkout page directly
+      // Wait for cart to update, then navigate to checkout
       setTimeout(() => {
-        window.location.href = '/checkout';
-      }, 200);
+        // Force cart refresh before navigation
+        window.dispatchEvent(new CustomEvent('cart-updated'));
+        setTimeout(() => {
+          window.location.href = '/checkout';
+        }, 300);
+      }, 500);
       
     } catch (error) {
       console.error('Error in buy now:', error);

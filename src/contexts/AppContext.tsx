@@ -244,7 +244,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         await refreshCart();
         // Dispatch custom event for UI updates
         window.dispatchEvent(new CustomEvent('cart-updated'));
-      }, 100);
+      }, 200);
       
       toast.success('Added to cart!');
     } catch (error: any) {
