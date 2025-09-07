@@ -27,12 +27,14 @@ export function SignupPage() {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      toast.error(state.language === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match');
+      const message = state.language === 'ar' ? 'كلمات المرور غير متطابقة' : 'Passwords do not match';
+      toast.error(message);
       return;
     }
     
     if (!formData.username.trim()) {
-      toast.error(state.language === 'ar' ? 'اسم المستخدم مطلوب' : 'Username is required');
+      const message = state.language === 'ar' ? 'اسم المستخدم مطلوب' : 'Username is required';
+      toast.error(message);
       return;
     }
     
@@ -43,7 +45,7 @@ export function SignupPage() {
       // Navigate to home page after successful signup and auto sign-in
       navigate('/');
     } catch (error) {
-      // Error handled by context - will show Arabic or English message
+      // Error handled by context with proper language support
     } finally {
       setIsLoading(false);
     }
