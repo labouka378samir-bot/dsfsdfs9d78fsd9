@@ -5,7 +5,7 @@ import { AppContextType, AppState, Language, Currency, Theme, CartItem, Settings
 import toast from 'react-hot-toast';
 
 const initialState: AppState = {
-  language: 'en',
+  language: 'en', // Always English
   currency: 'USD',
   theme: 'light',
   cart: [],
@@ -67,16 +67,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize immediately with saved preferences or defaults
   useEffect(() => {
-    // Get saved preferences instantly
-    const savedLanguage = localStorage.getItem('preferred_language') as Language;
+    // Force English language always
+    dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
+    
+    // Auto-detect currency based on IP location
+    const detectCurrencyByLocation = async () => {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        
+        // If user is from Algeria, use DZD, otherwise use USD
+        const currency = data.country_code === 'DZ' ? 'DZD' : 'USD';
+        dispatch({ type: 'SET_CURRENCY', payload: currency });
+        localStorage.setItem('preferred_currency', currency);
+      } catch (error) {
+        console.warn('Failed to detect location, using USD as default:', error);
+        // Fallback to saved currency or USD
+        const savedCurrency = localStorage.getItem('preferred_currency') as Currency;
+        dispatch({ type: 'SET_CURRENCY', payload: savedCurrency || 'USD' });
+      }
+    };
+    
+    // Get saved currency or detect by location
     const savedCurrency = localStorage.getItem('preferred_currency') as Currency;
-    
-    if (savedLanguage) {
-      dispatch({ type: 'SET_LANGUAGE', payload: savedLanguage });
-    }
-    
     if (savedCurrency) {
       dispatch({ type: 'SET_CURRENCY', payload: savedCurrency });
+    } else {
+      detectCurrencyByLocation();
     }
     
     // Load data in background without blocking UI
@@ -384,8 +401,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value: AppContextType = {
     state,
     setLanguage: (language: Language) => {
-      dispatch({ type: 'SET_LANGUAGE', payload: language });
-      localStorage.setItem('preferred_language', language);
+      // Always force English, ignore language changes
+      dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
+      localStorage.setItem('preferred_language', 'en');
     },
     setCurrency: (currency: Currency) => {
       dispatch({ type: 'SET_CURRENCY', payload: currency });
