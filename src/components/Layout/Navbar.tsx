@@ -146,7 +146,7 @@ export const Navbar: React.FC = () => {
             )}
 
             {/* Language Selector */}
-            <div className="relative">
+            <div className="relative hidden">
               <button
                 onClick={() => setShowLanguageMenu(!showLanguageMenu)}
                 className="flex items-center space-x-1 rtl:space-x-reverse bg-white border border-gray-300 rounded-lg px-2 py-2 text-sm font-medium text-secondary-700 hover:bg-gray-50 hover:border-primary-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent min-w-[70px]"
@@ -299,7 +299,7 @@ export const Navbar: React.FC = () => {
               </Link>
 
               {/* Language Selector in Mobile Menu */}
-              <div className="px-3 py-2 relative z-10">
+              <div className="px-3 py-2 relative z-10 hidden">
                 <div className="text-sm font-medium text-secondary-700 mb-2">Language / اللغة</div>
                 <div className="space-y-1">
                   {languages.map((language) => (

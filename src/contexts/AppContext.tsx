@@ -65,19 +65,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { user } = useAuth();
 
-  // Initialize immediately with saved preferences or defaults
+  // Initialize with forced English and IP-based currency
   useEffect(() => {
-    // Get saved preferences instantly
-    const savedLanguage = localStorage.getItem('preferred_language') as Language;
-    const savedCurrency = localStorage.getItem('preferred_currency') as Currency;
+    // Force English language always
+    dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
     
-    if (savedLanguage) {
-      dispatch({ type: 'SET_LANGUAGE', payload: savedLanguage });
-    }
-    
-    if (savedCurrency) {
-      dispatch({ type: 'SET_CURRENCY', payload: savedCurrency });
-    }
+    // Detect currency based on IP location
+    detectCurrencyByIP();
     
     // Load data in background without blocking UI
     setTimeout(() => {
@@ -86,6 +80,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       refreshCart();
     }, 100);
   }, []);
+
+  // Detect currency based on IP location
+  const detectCurrencyByIP = async () => {
+    try {
+      // Try to get user's country from IP
+      const response = await fetch('https://ipapi.co/json/');
+      const data = await response.json();
+      
+      // If user is from Algeria, set DZD, otherwise USD
+      const currency = data.country_code === 'DZ' ? 'DZD' : 'USD';
+      dispatch({ type: 'SET_CURRENCY', payload: currency });
+      
+      // Save the detected currency
+      localStorage.setItem('preferred_currency', currency);
+    } catch (error) {
+      // Fallback to USD if detection fails
+      console.warn('Failed to detect location, defaulting to USD:', error);
+      dispatch({ type: 'SET_CURRENCY', payload: 'USD' });
+      localStorage.setItem('preferred_currency', 'USD');
+    }
+  };
 
   // Generate session ID for anonymous users
   const getSessionId = () => {
@@ -384,8 +399,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value: AppContextType = {
     state,
     setLanguage: (language: Language) => {
-      dispatch({ type: 'SET_LANGUAGE', payload: language });
-      localStorage.setItem('preferred_language', language);
+      // Force English only - ignore language changes
+      dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
+      localStorage.setItem('preferred_language', 'en');
     },
     setCurrency: (currency: Currency) => {
       dispatch({ type: 'SET_CURRENCY', payload: currency });
