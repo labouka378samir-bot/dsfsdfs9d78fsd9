@@ -197,7 +197,7 @@ export function MaintenancePage() {
                     alt="ATHMANEBZN STORE" 
                     className="h-8 w-8 object-contain"
                   />
-                  <span className="text-2xl font-bold text-primary-500 tracking-wider">
+                  <span className="text-2xl font-bold text-primary-500 tracking-wider sm:font-dripping">
                     ATHMANEBZN
                   </span>
                 </div>
