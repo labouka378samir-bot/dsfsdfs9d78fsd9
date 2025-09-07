@@ -984,6 +984,7 @@ export function AdminDashboard() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">Name</th>
+                <th className="text-left py-3 px-4 font-semibold text-gray-700">Pricing</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">Slug</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">Products Count</th>
                 <th className="text-left py-3 px-4 font-semibold text-gray-700">Actions</th>

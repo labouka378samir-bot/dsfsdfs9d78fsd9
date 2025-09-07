@@ -48,7 +48,7 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
         is_active: product.is_active !== undefined ? product.is_active : true,
         image_url: product.image_url || '',
         category_id: product.category_id || '',
-        pricing_model: product.pricing_model || 'simple',
+        pricing_model: (product.variants && product.variants.length>0) ? 'variants' : (product.pricing_model || 'simple'),
         variants: product.variants || []
       });
     } else {

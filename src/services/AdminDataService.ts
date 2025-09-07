@@ -88,7 +88,9 @@ class AdminDataService {
             slug,
             translations:category_translations(*)
           )
-        `)
+        ,
+          variants:product_variants(*)
+          `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -332,7 +334,9 @@ class AdminDataService {
             slug,
             translations:category_translations(*)
           )
-        `)
+        ,
+          variants:product_variants(*)
+          `)
         .eq('id', id)
         .single();
 
