@@ -268,6 +268,7 @@ class AdminDataService {
       }
 
       if (updates.pricing_model === 'variants' && updates.variants) {
+        // Delete existing variants first
         await client.from('product_variants').delete().eq('product_id', id);
 
         if (updates.variants.length > 0) {
@@ -278,6 +279,7 @@ class AdminDataService {
             duration_unit: variant.duration_unit,
             price_usd: variant.price_usd,
             price_dzd: variant.price_dzd,
+            fulfillment_type: variant.fulfillment_type,
             is_out_of_stock: variant.is_out_of_stock,
             is_default: variant.is_default
           }));
@@ -289,6 +291,7 @@ class AdminDataService {
           if (variantError) throw variantError;
         }
       } else if (updates.pricing_model === 'simple') {
+        // Remove all variants when switching to simple pricing
         await client.from('product_variants').delete().eq('product_id', id);
       }
 

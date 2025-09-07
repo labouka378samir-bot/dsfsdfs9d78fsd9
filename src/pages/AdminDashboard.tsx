@@ -455,6 +455,345 @@ export function AdminDashboard() {
         </div>
       )}
 
+      {/* Auto Codes Tab */}
+      {activeTab === 'auto-codes' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Auto Codes Management</h1>
+            <div className="text-sm text-gray-600">
+              Manage automatic delivery codes for products
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Total Codes</p>
+                  <p className="text-2xl font-bold text-gray-900">{codes.length}</p>
+                </div>
+                <Key className="h-8 w-8 text-blue-600" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Available Codes</p>
+                  <p className="text-2xl font-bold text-green-600">{codes.filter(c => !c.is_used).length}</p>
+                </div>
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Used Codes</p>
+                  <p className="text-2xl font-bold text-red-600">{codes.filter(c => c.is_used).length}</p>
+                </div>
+                <AlertCircle className="h-8 w-8 text-red-600" />
+              </div>
+            </div>
+          </div>
+
+          {/* Auto Products List */}
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Auto Delivery Products</h2>
+              <p className="text-sm text-gray-600 mt-1">Products with automatic code delivery</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Available Codes</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Used Codes</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {products.filter(p => p.fulfillment_type === 'auto').map((product) => {
+                    const productCodes = codes.filter(c => c.product_id === product.id);
+                    const availableCodes = productCodes.filter(c => !c.is_used).length;
+                    const usedCodes = productCodes.filter(c => c.is_used).length;
+                    
+                    return (
+                      <tr key={product.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 flex-shrink-0">
+                              {product.image_url ? (
+                                <img
+                                  className="h-10 w-10 rounded-lg object-cover"
+                                  src={product.image_url}
+                                  alt={product.name_en}
+                                />
+                              ) : (
+                                <div className="h-10 w-10 bg-gray-200 rounded-lg flex items-center justify-center">
+                                  <Package className="h-5 w-5 text-gray-400" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{product.name_en}</div>
+                              <div className="text-sm text-gray-500">{product.sku}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            availableCodes > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {availableCodes} Available
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                            {usedCodes} Used
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <button
+                            onClick={() => {
+                              setCodesProductId(product.id);
+                              setCodesProductName(product.name_en || 'Unknown Product');
+                              setShowCodesModal(true);
+                            }}
+                            className="flex items-center space-x-1 bg-blue-600 text-white px-3 py-1 rounded-lg hover:bg-blue-700 transition-colors text-xs"
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>Add Codes</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* All Codes Table */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">All Codes</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Used At</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {codes.map((code) => (
+                    <tr key={code.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {code.product?.name_en || 'Unknown Product'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
+                        {code.code}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                          code.is_used ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+                        }`}>
+                          {code.is_used ? 'Used' : 'Available'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {code.used_at ? new Date(code.used_at).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => handleDeleteCode(code.id)}
+                          className="text-red-600 hover:text-red-700 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payments Tab */}
+      {activeTab === 'payments' && settings && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-gray-900">Payment Methods</h1>
+            <div className="text-sm text-gray-600">
+              Configure available payment methods
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* PayPal Settings */}
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <img src="/paypal.jpg" alt="PayPal" className="w-8 h-8 object-contain" />
+                  <h3 className="text-lg font-semibold text-gray-900">PayPal</h3>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    settings.payment_methods.paypal ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {settings.payment_methods.paypal ? 'Active' : 'Disabled'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={settings.payment_methods.paypal}
+                      onChange={(e) => handleUpdateSetting('payment_methods', {
+                        ...settings.payment_methods,
+                        paypal: e.target.checked
+                      })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Enable PayPal payments</span>
+                  </label>
+                </div>
+                
+                <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                  <p><strong>Currency:</strong> USD</p>
+                  <p><strong>Features:</strong> Buyer protection, instant payment</p>
+                  <p><strong>Processing:</strong> Real-time</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Cryptocurrency Settings */}
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <img src="/crypto.jpg" alt="Crypto" className="w-8 h-8 object-contain" />
+                  <h3 className="text-lg font-semibold text-gray-900">Cryptocurrency</h3>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    settings.payment_methods.crypto ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {settings.payment_methods.crypto ? 'Active' : 'Disabled'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={settings.payment_methods.crypto}
+                      onChange={(e) => handleUpdateSetting('payment_methods', {
+                        ...settings.payment_methods,
+                        crypto: e.target.checked
+                      })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Enable cryptocurrency payments</span>
+                  </label>
+                </div>
+                
+                <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                  <p><strong>Currency:</strong> USDT (TRC20)</p>
+                  <p><strong>Minimum:</strong> $3.50</p>
+                  <p><strong>Features:</strong> Anonymous, low fees</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Edahabia Settings */}
+            <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <img src="/edahabia.jpg" alt="Edahabia" className="w-8 h-8 object-contain" />
+                  <h3 className="text-lg font-semibold text-gray-900">Edahabia / CIB</h3>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Status:</span>
+                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    settings.payment_methods.edahabia ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}>
+                    {settings.payment_methods.edahabia ? 'Active' : 'Disabled'}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={settings.payment_methods.edahabia}
+                      onChange={(e) => handleUpdateSetting('payment_methods', {
+                        ...settings.payment_methods,
+                        edahabia: e.target.checked
+                      })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">Enable Edahabia/CIB payments</span>
+                  </label>
+                </div>
+                
+                <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
+                  <p><strong>Currency:</strong> DZD</p>
+                  <p><strong>Cards:</strong> Algerian bank cards</p>
+                  <p><strong>Provider:</strong> Chargily</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Statistics */}
+          <div className="bg-white rounded-lg shadow-md">
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Payment Statistics</h2>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {orders.filter(o => o.payment_method === 'paypal').length}
+                  </div>
+                  <div className="text-sm text-gray-600">PayPal Orders</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {orders.filter(o => o.payment_method === 'crypto').length}
+                  </div>
+                  <div className="text-sm text-gray-600">Crypto Orders</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {orders.filter(o => o.payment_method === 'edahabia').length}
+                  </div>
+                  <div className="text-sm text-gray-600">Edahabia Orders</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Orders Tab */}
       {activeTab === 'orders' && (
         <div className="space-y-6">

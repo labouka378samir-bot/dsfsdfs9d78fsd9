@@ -346,6 +346,9 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
                 <option value="manual">Manual</option>
                 <option value="assisted">Assisted</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Auto: Automatic code delivery | Manual: Contact support | Assisted: Semi-automatic
+              </p>
             </div>
 
             {/* Stock Status */}
@@ -365,6 +368,9 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
                 <option value="in_stock">In Stock</option>
                 <option value="out_of_stock">Out of Stock</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Controls product availability regardless of fulfillment type
+              </p>
             </div>
           </div>
 
