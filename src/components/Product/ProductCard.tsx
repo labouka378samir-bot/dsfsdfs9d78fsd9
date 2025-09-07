@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { ShoppingCart, Eye, Clock, Info } from 'lucide-react';
 import { Product } from '../../types';
 import { useApp } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { ProductModal } from './ProductModal';
+import { LoginRequiredModal } from './LoginRequiredModal';
+import toast from 'react-hot-toast';
 
 interface ProductCardProps {
   product: Product;
@@ -12,9 +15,11 @@ interface ProductCardProps {
 export const ProductCard = React.memo(function ProductCard({ product }: ProductCardProps) {
   // Manage modal and loading state locally.
   const [showModal, setShowModal] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
   const { state, addToCart } = useApp();
+  const { user } = useAuth();
   const { t, getTranslation } = useTranslation();
   
   // Memoize translations to prevent recalculation
@@ -34,6 +39,27 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
     setShowModal(true);
   };
 
+  const handleQuickAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
+    if (product.is_out_of_stock) return;
+    
+    setIsLoading(true);
+    try {
+      await addToCart(product.id, 1);
+      toast.success(state.language === 'ar' ? 'تم إضافة المنتج للسلة' : 'Added to cart!');
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <>
       {/*
@@ -79,6 +105,19 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
             >
               <Eye className="h-4 w-4" />
             </button>
+            {!product.is_out_of_stock && (
+              <button
+                onClick={handleQuickAddToCart}
+                disabled={isLoading}
+                className="bg-blue-600/90 backdrop-blur-sm text-white p-2.5 rounded-full hover:bg-blue-700 transition-all duration-200 shadow-lg transform hover:scale-110 disabled:opacity-50"
+              >
+                {isLoading ? (
+                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                ) : (
+                  <ShoppingCart className="h-4 w-4" />
+                )}
+              </button>
+            )}
           </div>
         </div>
         
@@ -142,6 +181,12 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
           onClose={() => setShowModal(false)}
         />
       )}
+      
+      {/* Login Required Modal */}
+      <LoginRequiredModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+      />
     </>
   );
 });

@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { X, ShoppingCart, Clock, Info, Check } from 'lucide-react';
 import { Product } from '../../types';
 import { useApp } from '../../contexts/AppContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { LoginRequiredModal } from './LoginRequiredModal';
+import toast from 'react-hot-toast';
 
 interface ProductModalProps {
   product: Product;
@@ -13,8 +16,10 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [showLoginModal, setShowLoginModal] = useState(false);
   
   const { state, addToCart } = useApp();
+  const { user } = useAuth();
   const { t, getTranslation } = useTranslation();
   
   const name = getTranslation(product.translations, 'name');
@@ -58,6 +63,12 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
   const stockQuantity = getStockQuantity();
   
   const handleAddToCart = async () => {
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
     if (stockQuantity <= 0) return;
     if (hasVariants && !selectedVariant) {
       toast.error(state.language === 'ar' ? 'يرجى اختيار نوع الاشتراك' : 'Please select a subscription type');
@@ -83,6 +94,12 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
   };
 
   const handleBuyNow = async () => {
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    
     if (stockQuantity <= 0) return;
     if (hasVariants && !selectedVariant) {
       toast.error(state.language === 'ar' ? 'يرجى اختيار نوع الاشتراك' : 'Please select a subscription type');
@@ -364,6 +381,12 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
           </div>
         </div>
       </div>
+      
+      {/* Login Required Modal */}
+      <LoginRequiredModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+      />
     </div>
   );
 }
