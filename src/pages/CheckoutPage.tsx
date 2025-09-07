@@ -75,7 +75,8 @@ export function CheckoutPage() {
     
     return () => {
       window.removeEventListener('cart-updated', handleCartUpdate);
-    }
+    };
+  }, [cart, navigate]);
 
   // Calculate totals based on payment method
   const calculateTotal = () => {
