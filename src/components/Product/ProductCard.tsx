@@ -29,6 +29,9 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
   
   const currencySymbol = state.currency === 'USD' ? '$' : 'دج';
   
+  // Debug log to check product stock status
+  console.log(`Product ${name} - is_out_of_stock:`, product.is_out_of_stock);
+  
   const handleSeeDetails = async (e: React.MouseEvent) => {
     e.stopPropagation();
     // Don't open modal if product is out of stock

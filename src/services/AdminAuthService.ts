@@ -7,12 +7,16 @@ class AdminAuthService {
     loginTime: number;
   } | null = null;
   
-  // Hardcoded admin credentials (NEVER store in Supabase)
-  private readonly ADMIN_EMAIL = 'athmanebzn@admin.exe';
-  private readonly ADMIN_PASSWORD = 'ATMNbusiness@999$x';
+  // Admin credentials from environment variables
+  private readonly ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL;
+  private readonly ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
   private readonly SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours
   
   private constructor() {
+    // Validate admin credentials are configured
+    if (!this.ADMIN_EMAIL || !this.ADMIN_PASSWORD) {
+      console.error('Admin credentials not configured. Please set VITE_ADMIN_EMAIL and VITE_ADMIN_PASSWORD in your .env file.');
+    }
     // Check for existing session on initialization
     this.checkSessionValidity();
   }
@@ -25,6 +29,12 @@ class AdminAuthService {
   }
   
   authenticate(email: string, password: string): boolean {
+    // Check if credentials are configured
+    if (!this.ADMIN_EMAIL || !this.ADMIN_PASSWORD) {
+      console.error('Admin credentials not configured');
+      return false;
+    }
+    
     if (email === this.ADMIN_EMAIL && password === this.ADMIN_PASSWORD) {
       this.adminSession = {
         email: this.ADMIN_EMAIL,

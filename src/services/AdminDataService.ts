@@ -222,6 +222,8 @@ class AdminDataService {
       productUpdates.updated_at = new Date().toISOString();
 
       const client = createServiceClient();
+      
+      console.log('Updating product with data:', productUpdates);
 
       if (Object.keys(productUpdates).length > 0) {
         const { error: productError } = await client
@@ -229,7 +231,12 @@ class AdminDataService {
           .update(productUpdates)
           .eq('id', id);
 
-        if (productError) throw productError;
+        if (productError) {
+          console.error('Product update error:', productError);
+          throw productError;
+        }
+        
+        console.log('Product updated successfully');
       }
 
       const languages = ['ar', 'en', 'fr'] as const;
