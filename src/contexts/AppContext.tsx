@@ -65,19 +65,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { user } = useAuth();
 
+  // Detect user's country by IP and set currency accordingly
+  const detectCurrencyByIP = async () => {
+    try {
+      // Check if currency was already detected and saved
+      const savedCurrency = localStorage.getItem('detected_currency');
+      if (savedCurrency) {
+        dispatch({ type: 'SET_CURRENCY', payload: savedCurrency as Currency });
+        return;
+      }
+
+      // Use ipapi.co to detect country
+      const response = await fetch('https://ipapi.co/json/');
+      if (!response.ok) throw new Error('Failed to fetch location');
+      
+      const data = await response.json();
+      const countryCode = data.country_code;
+      
+      // Set currency based on country
+      const currency: Currency = countryCode === 'DZ' ? 'DZD' : 'USD';
+      
+      // Save detected currency and apply it
+      localStorage.setItem('detected_currency', currency);
+      dispatch({ type: 'SET_CURRENCY', payload: currency });
+      
+      console.log(`Detected country: ${countryCode}, Currency set to: ${currency}`);
+    } catch (error) {
+      console.warn('Failed to detect location, using saved currency or USD:', error);
+      // Fallback to saved currency or USD
+      const savedCurrency = localStorage.getItem('preferred_currency') as Currency;
+      dispatch({ type: 'SET_CURRENCY', payload: savedCurrency || 'USD' });
+    }
+  };
+
   // Initialize immediately with saved preferences or defaults
   useEffect(() => {
-    // Get saved preferences instantly
-    const savedLanguage = localStorage.getItem('preferred_language') as Language;
-    const savedCurrency = localStorage.getItem('preferred_currency') as Currency;
+    // Always set language to English
+    dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
     
-    if (savedLanguage) {
-      dispatch({ type: 'SET_LANGUAGE', payload: savedLanguage });
-    }
-    
-    if (savedCurrency) {
-      dispatch({ type: 'SET_CURRENCY', payload: savedCurrency });
-    }
+    // Detect currency by IP
+    detectCurrencyByIP();
     
     // Load data in background without blocking UI
     setTimeout(() => {
@@ -384,12 +411,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value: AppContextType = {
     state,
     setLanguage: (language: Language) => {
-      dispatch({ type: 'SET_LANGUAGE', payload: language });
-      localStorage.setItem('preferred_language', language);
+      // Always force English, ignore language changes
+      dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
+      localStorage.setItem('preferred_language', 'en');
     },
     setCurrency: (currency: Currency) => {
       dispatch({ type: 'SET_CURRENCY', payload: currency });
       localStorage.setItem('preferred_currency', currency);
+      // Also update detected currency to prevent auto-reset
+      localStorage.setItem('detected_currency', currency);
     },
     setTheme: (theme: Theme) => dispatch({ type: 'SET_THEME', payload: theme }),
     addToCart,
