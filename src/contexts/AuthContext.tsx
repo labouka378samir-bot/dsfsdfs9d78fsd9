@@ -57,10 +57,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, username: string, phone?: string) => {
     setIsLoading(true);
     try {
+      // Check for temp/fake emails and reject them
+      const tempEmailDomains = [
+        'tempmail.org', '10minutemail.com', 'guerrillamail.com', 'mailinator.com',
+        'temp-mail.org', 'throwaway.email', 'maildrop.cc', 'yopmail.com',
+        'sharklasers.com', 'guerrillamailblock.com', 'pokemail.net', 'spam4.me',
+        'tempail.com', 'tempinbox.com', 'mailnesia.com', 'trashmail.com',
+        'dispostable.com', 'fakeinbox.com', 'mailcatch.com', 'emailondeck.com',
+        'getnada.com', 'tempmailo.com', 'mohmal.com', 'emailfake.com',
+        'temporary-mail.net', 'temp-mail.io', 'tempmail.ninja', 'burnermail.io',
+        'minuteinbox.com', 'tempmail.plus', 'disposablemail.com', 'tempmail.email'
+      ];
+      
+      const emailDomain = email.split('@')[1]?.toLowerCase();
+      if (tempEmailDomains.includes(emailDomain)) {
+        throw new Error('Temporary email addresses are not allowed. Please use a real email address.');
+      }
+
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
+          emailRedirectTo: undefined, // Disable email confirmation
           data: {
             username: username,
             phone: phone
@@ -69,9 +87,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) throw error;
-      // Don't show toast here, let the signup page handle the confirmation message
+      
+      // Auto sign in after successful signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (signInError) {
+        // If auto sign-in fails, still show success but ask user to sign in manually
+        toast.success('Account created successfully! Please sign in.');
+        throw signInError;
+      }
+      
+      toast.success('Account created and signed in successfully!');
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create account');
+      if (error.message?.includes('Temporary email')) {
+        toast.error('يُمنع استخدام الإيميلات المؤقتة. يرجى استخدام إيميل حقيقي.');
+      } else {
+        toast.error(error.message || 'Failed to create account');
+      }
       throw error;
     } finally {
       setIsLoading(false);

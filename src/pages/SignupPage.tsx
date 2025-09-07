@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, CheckCircle, Phone, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Phone, User } from 'lucide-react';
 import { Layout } from '../components/Layout/Layout';
 import { useAuth } from '../contexts/AuthContext';
 import { useApp } from '../contexts/AppContext';
 import { useTranslation } from '../hooks/useTranslation';
+import toast from 'react-hot-toast';
 
 export function SignupPage() {
   const [formData, setFormData] = useState({
@@ -16,7 +17,6 @@ export function SignupPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   
   const { signUp } = useAuth();
   const { state } = useApp();
@@ -40,7 +40,8 @@ export function SignupPage() {
     
     try {
       await signUp(formData.email, formData.password, formData.username, formData.phone);
-      setShowEmailConfirmation(true);
+      // Navigate to home page after successful signup and auto sign-in
+      navigate('/');
     } catch (error) {
       // Error handled by context
     } finally {
@@ -204,39 +205,6 @@ export function SignupPage() {
             </div>
           </form>
         </div>
-
-        {/* Email Confirmation Modal */}
-        {showEmailConfirmation && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full p-6 text-center">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                {state.language === 'ar' ? 'تم إنشاء الحساب بنجاح!' : 'Account Created Successfully!'}
-              </h3>
-              <p className="text-gray-600 mb-6">
-                {state.language === 'ar' 
-                  ? 'يرجى التحقق من بريدك الإلكتروني وتأكيد حسابك لتتمكن من تسجيل الدخول.'
-                  : 'Please check your email and confirm your account to be able to sign in.'
-                }
-              </p>
-              <div className="flex space-x-3 rtl:space-x-reverse">
-                <button
-                  onClick={() => setShowEmailConfirmation(false)}
-                  className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300 transition-colors"
-                >
-                  {state.language === 'ar' ? 'إغلاق' : 'Close'}
-                </button>
-                <Link
-                  to="/login"
-                  className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-center"
-                  onClick={() => setShowEmailConfirmation(false)}
-                >
-                  {state.language === 'ar' ? 'تسجيل الدخول' : 'Sign In'}
-                </Link>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   );
