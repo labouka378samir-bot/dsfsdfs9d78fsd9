@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       toast.success('ACCOUNT_CREATED_SUCCESS');
     } catch (error: any) {
       // Handle different error types with proper language support
-      this.handleSignUpError(error);
+      handleSignUpError(error);
       throw error;
     } finally {
       setIsLoading(false);
