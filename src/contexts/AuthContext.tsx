@@ -57,6 +57,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, username: string, phone?: string) => {
     setIsLoading(true);
     try {
+      // التحقق من توفر الإيميل
+      const { data: emailCheck } = await supabase.rpc('check_email_availability', {
+        email_to_check: email
+      });
+      
+      if (!emailCheck) {
+        throw new Error('هذا الإيميل مستخدم بالفعل. يرجى استخدام إيميل آخر.');
+      }
+
+      // التحقق من توفر اليوزرنايم
+      const { data: usernameCheck } = await supabase.rpc('check_username_availability', {
+        username_to_check: username
+      });
+      
+      if (!usernameCheck) {
+        throw new Error('اسم المستخدم مستخدم بالفعل. يرجى اختيار اسم آخر.');
+      }
+
       // Check for temp/fake emails and reject them
       const tempEmailDomains = [
         'tempmail.org', '10minutemail.com', 'guerrillamail.com', 'mailinator.com',
