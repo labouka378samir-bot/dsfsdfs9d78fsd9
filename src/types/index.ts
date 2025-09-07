@@ -35,6 +35,7 @@ export interface Product {
   image_url: string;
   logo_url?: string;
   pricing_model?: 'simple' | 'variants';
+  variants?: ProductVariant[];
   required_fields?: string[];
   badges?: string[];
   display_priority?: number;
@@ -45,6 +46,22 @@ export interface Product {
   category?: Category;
   created_at: string;
   updated_at: string;
+}
+
+export interface ProductVariant {
+  id?: string;
+  product_id?: string;
+  name: Record<string, string>;
+  duration_value: number;
+  duration_unit: string;
+  price_usd: number;
+  price_dzd: number;
+  fulfillment_type: 'auto' | 'manual' | 'assisted';
+  stock_count: number;
+  is_out_of_stock: boolean;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProductTranslation {
@@ -93,8 +110,10 @@ export interface CartItem {
   user_id?: string;
   session_id?: string;
   product_id: string;
+  variant_id?: string;
   quantity: number;
   product?: Product;
+  variant?: ProductVariant;
   created_at: string;
   updated_at: string;
 }
@@ -153,7 +172,7 @@ export interface AppContextType {
   setLanguage: (language: Language) => void;
   setCurrency: (currency: Currency) => void;
   setTheme: (theme: Theme) => void;
-  addToCart: (productId: string, quantity?: number) => Promise<void>;
+  addToCart: (productId: string, quantity?: number, variantId?: string) => Promise<void>;
   updateCartItem: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;

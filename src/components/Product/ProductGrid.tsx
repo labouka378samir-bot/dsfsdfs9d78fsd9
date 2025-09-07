@@ -30,11 +30,8 @@ export function ProductGrid() {
   }, [searchQuery]);
 
   useEffect(() => {
-    // Load products immediately without waiting
-    const loadProductsAsync = async () => {
-      await loadProducts();
-    };
-    loadProductsAsync();
+    // Load products immediately
+    loadProducts();
     
     // Set up real-time subscription for live product updates
     const subscription = supabase
@@ -54,17 +51,19 @@ export function ProductGrid() {
   }, [selectedCategory]);
 
   const loadProducts = async () => {
+    // Only show loading spinner on first load
+    if (products.length === 0) {
+      setIsLoading(true);
+    }
+    
     try {
-      // Don't show loading for subsequent loads
-      if (products.length === 0) {
-        setIsLoading(true);
-      }
       
       let query = supabase
         .from('products')
         .select(`
           *,
           translations:product_translations(*),
+          variants:product_variants(*),
           category:categories(
             id,
             slug,

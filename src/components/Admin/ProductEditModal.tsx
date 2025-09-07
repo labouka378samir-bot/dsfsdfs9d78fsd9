@@ -501,32 +501,33 @@ export function ProductEditModal({ product, isOpen, onClose, onSave }: ProductEd
 
             {/* Simple Pricing */}
             {formData.pricing_model === 'simple' && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price (USD) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.price_usd || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price_usd: parseFloat(e.target.value) || 0 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="0.00"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Price (DZD)
+                    Price (DZD) *
                   </label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.price_dzd || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, price_dzd: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) => {
+                      const priceDzd = parseFloat(e.target.value) || 0;
+                      const priceUsd = priceDzd / state.settings.exchange_rate_usd_to_dzd;
+                      setFormData(prev => ({ 
+                        ...prev, 
+                        price_dzd: priceDzd,
+                        price_usd: Math.round(priceUsd * 100) / 100 // Round to 2 decimal places
+                      }));
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0.00"
                   />
+                  <div className="mt-1 text-xs text-gray-500">
+                    USD: ${(formData.price_dzd ? (formData.price_dzd / state.settings.exchange_rate_usd_to_dzd).toFixed(2) : '0.00')}
+                    <span className="ml-2 rtl:mr-2 rtl:ml-0">
+                      (Rate: 1$ = {state.settings.exchange_rate_usd_to_dzd} دج)
+                    </span>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -633,19 +634,21 @@ export function ProductEditModal({ product, isOpen, onClose, onSave }: ProductEd
                       <input
                         type="number"
                         step="0.01"
-                        value={variant.price_usd}
-                        onChange={(e) => updateVariant(index, { price_usd: parseFloat(e.target.value) || 0 })}
-                        className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="USD Price"
-                      />
-                      <input
-                        type="number"
-                        step="0.01"
                         value={variant.price_dzd}
-                        onChange={(e) => updateVariant(index, { price_dzd: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) => {
+                          const priceDzd = parseFloat(e.target.value) || 0;
+                          const priceUsd = priceDzd / state.settings.exchange_rate_usd_to_dzd;
+                          updateVariant(index, { 
+                            price_dzd: priceDzd,
+                            price_usd: Math.round(priceUsd * 100) / 100
+                          });
+                        }}
                         className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         placeholder="DZD Price"
                       />
+                      <div className="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-sm text-gray-600">
+                        ${variant.price_dzd ? (variant.price_dzd / state.settings.exchange_rate_usd_to_dzd).toFixed(2) : '0.00'}
+                      </div>
                       <input
                         type="number"
                         value={variant.stock_count}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShoppingCart, Clock, Info } from 'lucide-react';
+import { X, ShoppingCart, Clock, Info, Check } from 'lucide-react';
 import { Product } from '../../types';
 import { useApp } from '../../contexts/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -12,6 +12,7 @@ interface ProductModalProps {
 export function ProductModal({ product, onClose }: ProductModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
   
   const { state, addToCart } = useApp();
   const { t, getTranslation } = useTranslation();
@@ -20,18 +21,57 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
   const description = getTranslation(product.translations, 'description');
   const instructions = getTranslation(product.translations, 'activation_instructions');
   
-  const price = state.currency === 'USD' ? product.price_usd : 
-    product.price_dzd || (product.price_usd * state.settings.exchange_rate_usd_to_dzd);
+  // Check if product has variants
+  const hasVariants = product.pricing_model === 'variants' && product.variants && product.variants.length > 0;
+  
+  // Get price based on selected variant or default product price
+  const getPrice = () => {
+    if (hasVariants && selectedVariant) {
+      return state.currency === 'USD' ? selectedVariant.price_usd : 
+        selectedVariant.price_dzd || (selectedVariant.price_usd * state.settings.exchange_rate_usd_to_dzd);
+    }
+    return state.currency === 'USD' ? product.price_usd : 
+      product.price_dzd || (product.price_usd * state.settings.exchange_rate_usd_to_dzd);
+  };
+  
+  const price = getPrice();
   
   const currencySymbol = state.currency === 'USD' ? '$' : 'دج';
   const totalPrice = price * quantity;
   
+  // Set default variant on mount
+  React.useEffect(() => {
+    if (hasVariants && !selectedVariant) {
+      const defaultVariant = product.variants?.find(v => v.is_default) || product.variants?.[0];
+      setSelectedVariant(defaultVariant);
+    }
+  }, [hasVariants, selectedVariant, product.variants]);
+  
+  // Get stock quantity based on variant or product
+  const getStockQuantity = () => {
+    if (hasVariants && selectedVariant) {
+      return selectedVariant.is_out_of_stock ? 0 : selectedVariant.stock_count;
+    }
+    return product.stock_quantity;
+  };
+  
+  const stockQuantity = getStockQuantity();
+  
   const handleAddToCart = async () => {
-    if (product.stock_quantity <= 0) return;
+    if (stockQuantity <= 0) return;
+    if (hasVariants && !selectedVariant) {
+      toast.error(state.language === 'ar' ? 'يرجى اختيار نوع الاشتراك' : 'Please select a subscription type');
+      return;
+    }
     
     setIsLoading(true);
     try {
-      await addToCart(product.id, quantity);
+      // For variants, we need to pass variant info
+      if (hasVariants && selectedVariant) {
+        await addToCart(product.id, quantity, selectedVariant.id);
+      } else {
+        await addToCart(product.id, quantity);
+      }
       onClose();
     } finally {
       setIsLoading(false);
@@ -40,8 +80,9 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
 
   const handleBuyNow = async () => {
     await handleAddToCart();
-    // Navigate to checkout would be implemented here
-    window.location.href = '/cart';
+    if (!isLoading) {
+      window.location.href = '/cart';
+    }
   };
 
   return (
@@ -78,7 +119,14 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
             )}
           </div>
           
-          {/* Product Details */}
+          {stockQuantity <= 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+              <p className="text-red-800 font-semibold text-center">
+                {t('product.out_of_stock')}
+              </p>
+            </div>
+          )}
+          
           <div className="space-y-6">
             {/* Description */}
             <div>
@@ -87,15 +135,21 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
             </div>
             
             {/* Duration */}
-            {product.duration_days > 0 && (
+            {(selectedVariant?.duration_value || product.duration_days > 0) && (
               <div className="flex items-center text-gray-600">
                 <Clock className="h-5 w-5 mr-2" />
                 <span>
-                  <strong>{t('product.duration')}:</strong> {
+                  <strong>{t('product.duration')}:</strong> {hasVariants && selectedVariant ? (
+                    selectedVariant.duration_unit === 'years' 
+                      ? `${selectedVariant.duration_value} ${selectedVariant.duration_value === 1 ? t('product.year') : t('product.years')}`
+                      : selectedVariant.duration_unit === 'months'
+                      ? `${selectedVariant.duration_value} ${selectedVariant.duration_value === 1 ? t('product.month') : t('product.months')}`
+                      : `${selectedVariant.duration_value} ${selectedVariant.duration_value === 1 ? t('product.day') : t('product.days')}`
+                  ) : (
                     product.duration_days >= 365 
                       ? `${Math.floor(product.duration_days / 365)} ${Math.floor(product.duration_days / 365) === 1 ? t('product.year') : t('product.years')}`
                       : `${Math.floor(product.duration_days / 30)} ${Math.floor(product.duration_days / 30) === 1 ? t('product.month') : t('product.months')}`
-                  }
+                  )}
                 </span>
               </div>
             )}
@@ -111,6 +165,81 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                 </div>
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <p className="text-blue-800 leading-relaxed">{instructions}</p>
+                </div>
+              </div>
+            )}
+            
+            {/* Pricing Options */}
+            {hasVariants && product.variants && product.variants.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  {state.language === 'ar' ? 'اختر نوع الاشتراك' : 'Choose Subscription Type'}
+                </h3>
+                <div className="space-y-3">
+                  {product.variants.map((variant, index) => {
+                    const variantName = variant.name[state.language] || variant.name.en || `Option ${index + 1}`;
+                    const variantPrice = state.currency === 'USD' ? variant.price_usd : 
+                      variant.price_dzd || (variant.price_usd * state.settings.exchange_rate_usd_to_dzd);
+                    const isOutOfStock = variant.is_out_of_stock || variant.stock_count <= 0;
+                    
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedVariant(variant)}
+                        disabled={isOutOfStock}
+                        className={`w-full p-4 border-2 rounded-lg text-left rtl:text-right transition-all duration-200 ${
+                          selectedVariant === variant
+                            ? 'border-primary-500 bg-primary-50'
+                            : isOutOfStock
+                            ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                            : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                              <h4 className="font-semibold text-gray-900">{variantName}</h4>
+                              {variant.is_default && (
+                                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">
+                                  {state.language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
+                                </span>
+                              )}
+                              {isOutOfStock && (
+                                <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium">
+                                  {state.language === 'ar' ? 'نفد المخزون' : 'Out of Stock'}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600 mt-1">
+                              {variant.duration_unit === 'years' 
+                                ? `${variant.duration_value} ${variant.duration_value === 1 ? t('product.year') : t('product.years')}`
+                                : variant.duration_unit === 'months'
+                                ? `${variant.duration_value} ${variant.duration_value === 1 ? t('product.month') : t('product.months')}`
+                                : `${variant.duration_value} ${variant.duration_value === 1 ? t('product.day') : t('product.days')}`
+                              }
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-lg font-bold text-primary-600">
+                              {currencySymbol}{variantPrice.toFixed(2)}
+                            </div>
+                            {!isOutOfStock && (
+                              <div className="text-xs text-gray-500">
+                                {state.language === 'ar' ? 'متوفر' : 'Available'}: {variant.stock_count}
+                              </div>
+                            )}
+                          </div>
+                          {selectedVariant === variant && (
+                            <div className="ml-3 rtl:mr-3 rtl:ml-0">
+                              <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -131,7 +260,7 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                 </div>
               </div>
               
-              {product.stock_quantity > 0 && (
+              {stockQuantity > 0 && (
                 <div className="flex items-center justify-between mb-4">
                   <label className="text-lg font-semibold text-gray-900">{t('common.quantity')}:</label>
                   <div className="flex items-center space-x-3">
@@ -143,7 +272,7 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                     </button>
                     <span className="text-lg font-semibold w-8 text-center">{quantity}</span>
                     <button
-                      onClick={() => setQuantity(Math.min(product.stock_quantity, quantity + 1))}
+                      onClick={() => setQuantity(Math.min(stockQuantity, quantity + 1))}
                       className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100"
                     >
                       +
@@ -164,19 +293,24 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
             <div className="flex space-x-4 rtl:space-x-reverse">
               <button
                 onClick={handleAddToCart}
-                disabled={product.stock_quantity <= 0 || isLoading}
+                disabled={stockQuantity <= 0 || isLoading || (hasVariants && !selectedVariant)}
                 className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
-                  product.stock_quantity <= 0
+                  stockQuantity <= 0 || (hasVariants && !selectedVariant)
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
                 {isLoading ? (
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                ) : product.stock_quantity <= 0 ? (
+                ) : stockQuantity <= 0 ? (
                   <>
                     <ShoppingCart className="h-5 w-5 mr-2" />
                     {t('product.out_of_stock')}
+                  </>
+                ) : hasVariants && !selectedVariant ? (
+                  <>
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    {state.language === 'ar' ? 'اختر نوع الاشتراك' : 'Select Option'}
                   </>
                 ) : (
                   <>
@@ -188,14 +322,16 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
               
               <button
                 onClick={handleBuyNow}
-                disabled={product.stock_quantity <= 0 || isLoading}
+                disabled={stockQuantity <= 0 || isLoading || (hasVariants && !selectedVariant)}
                 className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors ${
-                  product.stock_quantity <= 0
+                  stockQuantity <= 0 || (hasVariants && !selectedVariant)
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
               >
-                {product.stock_quantity <= 0 ? t('product.out_of_stock') : t('common.buy_now')}
+                {stockQuantity <= 0 ? t('product.out_of_stock') : 
+                 hasVariants && !selectedVariant ? (state.language === 'ar' ? 'اختر نوع الاشتراك' : 'Select Option') :
+                 t('common.buy_now')}
               </button>
             </div>
           </div>

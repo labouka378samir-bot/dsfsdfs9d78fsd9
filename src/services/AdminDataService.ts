@@ -165,6 +165,15 @@ class AdminDataService {
 
       if (translationError) throw translationError;
 
+      // Auto-calculate USD price if not provided
+      if (formData.price_dzd && !formData.price_usd) {
+        const calculatedUsdPrice = formData.price_dzd / 250; // Default exchange rate
+        await client
+          .from('products')
+          .update({ price_usd: Math.round(calculatedUsdPrice * 100) / 100 })
+          .eq('id', order.id);
+      }
+
       if (productData.pricing_model === 'variants' && productData.variants?.length) {
         const variantInserts = productData.variants.map(variant => ({
           product_id: product.id,

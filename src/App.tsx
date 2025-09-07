@@ -26,17 +26,6 @@ function ProtectedAdminRoute({ children }: { children: React.ReactNode }) {
 }
 
 function App() {
-  // Test Supabase connection on app start
-  React.useEffect(() => {
-    testSupabaseConnection().then(success => {
-      if (success) {
-        // Connection successful
-      } else {
-        // Connection failed - could show user notification if needed
-      }
-    });
-  }, []);
-
   return (
     <Router>
       <AuthProvider>

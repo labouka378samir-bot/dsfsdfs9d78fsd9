@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Eye, Clock } from 'lucide-react';
+import { ShoppingCart, Eye, Clock, Info } from 'lucide-react';
 import { Product } from '../../types';
 import { useApp } from '../../contexts/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,16 +29,9 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
   
   const currencySymbol = state.currency === 'USD' ? '$' : 'دج';
   
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  const handleSeeDetails = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (product.stock_quantity <= 0) return;
-    
-    setIsLoading(true);
-    try {
-      await addToCart(product.id);
-    } finally {
-      setIsLoading(false);
-    }
+    setShowModal(true);
   };
 
   return (
@@ -86,17 +79,6 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
             >
               <Eye className="h-4 w-4" />
             </button>
-            <button
-              onClick={handleAddToCart}
-              disabled={product.stock_quantity <= 0 || isLoading}
-              className={`p-2.5 rounded-full transition-all duration-200 shadow-lg transform hover:scale-110 ${
-                product.stock_quantity <= 0 
-                  ? 'bg-gray-400/90 backdrop-blur-sm text-gray-600 cursor-not-allowed'
-                  : 'bg-primary-500/90 backdrop-blur-sm text-secondary-900 hover:bg-primary-600'
-              }`}
-            >
-              <ShoppingCart className="h-4 w-4" />
-            </button>
           </div>
         </div>
         
@@ -137,27 +119,11 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
               )}
             </div>
             <button
-              onClick={handleAddToCart}
-              disabled={product.stock_quantity <= 0 || isLoading}
-              className={`w-full px-4 py-3 rounded-lg text-base font-bold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] flex items-center justify-center ${
-                product.stock_quantity <= 0
-                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-primary-500 to-primary-600 text-secondary-900 hover:from-primary-600 hover:to-primary-700'
-              }`}
+              onClick={handleSeeDetails}
+              className="w-full px-4 py-3 rounded-lg text-base font-bold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
             >
-              {isLoading ? (
-                <div className="animate-spin w-5 h-5 border-2 border-secondary-900 border-t-transparent rounded-full" />
-              ) : product.stock_quantity <= 0 ? (
-                <>
-                  <ShoppingCart className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
-                  {t('product.out_of_stock')}
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
-                  {t('common.add_to_cart')}
-                </>
-              )}
+              <Info className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
+              {state.language === 'ar' ? 'عرض التفاصيل' : 'See Details'}
             </button>
           </div>
         </div>

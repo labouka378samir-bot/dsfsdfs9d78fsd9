@@ -19,8 +19,15 @@ export default defineConfig({
     port: 4173
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', '@supabase/supabase-js'],
-    exclude: [],
+    include: [
+      'react', 
+      'react-dom', 
+      '@supabase/supabase-js',
+      'react-router-dom',
+      'lucide-react',
+      'react-hot-toast'
+    ],
+    exclude: ['html2canvas', 'jspdf'],
   },
   build: {
     outDir: 'dist',

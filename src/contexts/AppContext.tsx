@@ -71,18 +71,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Auto-detect currency based on IP location (Algeria = DZD, others = USD)
   const detectCurrencyFromIP = async () => {
-    // Quick start with defaults
-    setIsQuickStart(true);
+    // Check for saved preferences first (instant)
+    const savedLanguage = localStorage.getItem('preferred_language') as Language;
+    const savedCurrency = localStorage.getItem('preferred_currency') as Currency;
+    
+    if (savedLanguage && savedCurrency) {
+      // User has preferences - use them immediately
+      dispatch({ type: 'SET_LANGUAGE', payload: savedLanguage });
+      dispatch({ type: 'SET_CURRENCY', payload: savedCurrency });
+      setIsInitialized(true);
+      return;
+    }
+    
+    // No saved preferences - quick start with defaults
     dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
     dispatch({ type: 'SET_CURRENCY', payload: 'USD' });
     setIsInitialized(true);
 
     try {
-      // Use ipapi.co for IP geolocation
-      const response = await fetch('https://ipapi.co/json/');
-      const data = await response.json();
+      // Use faster IP detection with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
       
-      console.log('IP Location data:', data);
+      const response = await fetch('https://ipapi.co/json/', {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
+      const data = await response.json();
       
       // Store user IP and country info
       setUserIP(data.ip || 'unknown');
@@ -91,46 +107,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Determine currency based on country
       const currency: Currency = data.country_code === 'DZ' ? 'DZD' : 'USD';
       
-      // Always set language to English
-      dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
-      
-      // Check if user has previously selected a currency
-      const ipKey = data.ip || 'unknown';
-      const savedCurrency = localStorage.getItem(`preferred_currency_${ipKey}`) as Currency;
-      
-      if (savedCurrency) {
-        // User has previous currency preference
-        dispatch({ type: 'SET_CURRENCY', payload: savedCurrency });
-      } else {
-        // First time visitor - use auto-detected currency
+      // Update currency if different from default
+      if (currency !== 'USD') {
         dispatch({ type: 'SET_CURRENCY', payload: currency });
-        // Save the auto-detected currency
-        localStorage.setItem(`preferred_currency_${ipKey}`, currency);
+        localStorage.setItem('preferred_currency', currency);
       }
       
-      setIsQuickStart(false);
-      
-      // Show toast message about auto-detection
-      if (!savedCurrency && currency !== 'USD') {
-        const message = currency === 'DZD' 
-          ? 'Currency set to Algerian Dinar based on your location'
-          : 'Currency set to US Dollar based on your location';
-        toast.success(message);
-      }
-      
-    } catch (error) {
-      console.log('Could not detect IP location, using USD as default');
+    } catch (error: any) {
+      // Silently fail - user already has defaults set
       setUserIP('unknown');
       setUserCountry('UNKNOWN');
-      
-      // Check if user has currency preference (fallback)
-      const savedCurrency = localStorage.getItem('preferred_currency_fallback') as Currency;
-      
-      if (savedCurrency) {
-        dispatch({ type: 'SET_CURRENCY', payload: savedCurrency });
-      }
-      
-      setIsQuickStart(false);
     }
   };
 
@@ -235,7 +221,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Cart operations
-  const addToCart = async (productId: string, quantity = 1) => {
+  const addToCart = async (productId: string, quantity = 1, variantId?: string) => {
     // Skip cart operations for admin user
     if (user && user.id === 'admin-user-id') {
       toast.error('Cart operations not available for admin users');
@@ -263,9 +249,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) throw error;
       } else {
         // Insert new item
-        const cartData = user
-          ? { user_id: user.id, product_id: productId, quantity }
-          : { session_id: sessionId, product_id: productId, quantity };
+        const cartData = {
+          ...(user ? { user_id: user.id } : { session_id: sessionId }),
+          product_id: productId,
+          quantity,
+          ...(variantId && { variant_id: variantId })
+        };
 
         const { error } = await supabase
           .from('carts')
@@ -422,21 +411,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     state,
     setLanguage: (language: Language) => {
       dispatch({ type: 'SET_LANGUAGE', payload: language });
-      const ipKey = userIP || 'unknown';
-      if (userIP && userIP !== 'unknown') {
-        localStorage.setItem(`preferred_language_${ipKey}`, language);
-      } else {
-        localStorage.setItem('preferred_language_fallback', language);
-      }
+      localStorage.setItem('preferred_language', language);
     },
     setCurrency: (currency: Currency) => {
       dispatch({ type: 'SET_CURRENCY', payload: currency });
-      const ipKey = userIP || 'unknown';
-      if (userIP && userIP !== 'unknown') {
-        localStorage.setItem(`preferred_currency_${ipKey}`, currency);
-      } else {
-        localStorage.setItem('preferred_currency_fallback', currency);
-      }
+      localStorage.setItem('preferred_currency', currency);
     },
     setTheme: (theme: Theme) => dispatch({ type: 'SET_THEME', payload: theme }),
     addToCart,
