@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "dev:full": "vite --host 0.0.0.0 --port 5173",
-    "start": "vite preview --host 0.0.0.0 --port $PORT"
+    "start": "vite preview --host 0.0.0.0 --port $PORT",
+    "start:production": "vite preview --host 0.0.0.0 --port $PORT"
   },
   "dependencies": {
     "@paypal/react-paypal-js": "^8.9.1",

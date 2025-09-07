@@ -6,7 +6,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: true,
-    port: 5173
+    port: 5173,
+    allowedHosts: [
+      'athmanebzn.store',
+      'www.athmanebzn.store',
+      'localhost',
+      '127.0.0.1'
+    ]
   },
   preview: {
     host: true,
