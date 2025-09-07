@@ -8,11 +8,12 @@ class AdminAuthService {
   } | null = null;
   
   // Hardcoded admin credentials (NEVER store in Supabase)
-  private readonly ADMIN_EMAIL = 'athmanebzn@admin.exe';
-  private readonly ADMIN_PASSWORD = 'ATMNbusiness@999$x';
+  private readonly ADMIN_EMAIL = (import.meta as any).env?.VITE_ADMIN_EMAIL as string;
+  private readonly ADMIN_PASSWORD = (import.meta as any).env?.VITE_ADMIN_PASSWORD as string;
   private readonly SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours
   
   private constructor() {
+    this.validateEnv();
     // Check for existing session on initialization
     this.checkSessionValidity();
   }
@@ -72,7 +73,15 @@ class AdminAuthService {
   }
   
   // Extend session on activity
-  extendSession(): void {
+  
+  // Validate env presence (avoids leaking creds in repo)
+  private validateEnv() {
+    if (!this.ADMIN_EMAIL || !this.ADMIN_PASSWORD) {
+      console.error('[AdminAuth] Missing VITE_ADMIN_EMAIL or VITE_ADMIN_PASSWORD in your .env');
+      // Optional: prevent login if missing
+    }
+  }
+extendSession(): void {
     if (this.adminSession) {
       this.adminSession.loginTime = Date.now();
     }
