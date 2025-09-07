@@ -200,13 +200,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const sessionId = getSessionId();
       
       // Check if item already exists in cart
-      const { data: existingItem } = await supabase
+      let existingItemQuery = supabase
         .from('carts')
         .select('*')
         .eq('product_id', productId)
-        .eq(user ? 'user_id' : 'session_id', user ? user.id : sessionId)
-        .eq('variant_id', variantId || null)
-        .maybeSingle();
+        .eq(user ? 'user_id' : 'session_id', user ? user.id : sessionId);
+      
+      // Add variant filter if provided
+      if (variantId) {
+        existingItemQuery = existingItemQuery.eq('variant_id', variantId);
+      } else {
+        existingItemQuery = existingItemQuery.is('variant_id', null);
+      }
+      
+      const { data: existingItem } = await existingItemQuery.maybeSingle();
 
       if (existingItem) {
         // Update existing item
@@ -232,7 +239,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) throw error;
       }
 
-      await refreshCart();
+      // Force refresh cart with a small delay to ensure database consistency
+      setTimeout(async () => {
+        await refreshCart();
+        // Dispatch custom event for UI updates
+        window.dispatchEvent(new CustomEvent('cart-updated'));
+      }, 100);
+      
       toast.success('Added to cart!');
     } catch (error: any) {
       toast.error('Failed to add to cart');

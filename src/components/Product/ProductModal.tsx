@@ -73,15 +73,44 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
         await addToCart(product.id, quantity);
       }
       onClose();
+      // Force refresh cart to ensure UI updates
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('cart-updated'));
+      }, 100);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleBuyNow = async () => {
-    await handleAddToCart();
-    if (!isLoading) {
-      window.location.href = '/cart';
+    if (stockQuantity <= 0) return;
+    if (hasVariants && !selectedVariant) {
+      toast.error(state.language === 'ar' ? 'يرجى اختيار نوع الاشتراك' : 'Please select a subscription type');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // Add to cart first
+      if (hasVariants && selectedVariant) {
+        await addToCart(product.id, quantity, selectedVariant.id);
+      } else {
+        await addToCart(product.id, quantity);
+      }
+      
+      // Close modal and go directly to checkout
+      onClose();
+      
+      // Navigate to checkout page directly
+      setTimeout(() => {
+        window.location.href = '/checkout';
+      }, 200);
+      
+    } catch (error) {
+      console.error('Error in buy now:', error);
+      toast.error(state.language === 'ar' ? 'حدث خطأ، يرجى المحاولة مرة أخرى' : 'An error occurred, please try again');
+    } finally {
+      setIsLoading(false);
     }
   };
 

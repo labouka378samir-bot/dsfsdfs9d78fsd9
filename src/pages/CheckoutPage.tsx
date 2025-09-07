@@ -49,10 +49,33 @@ export function CheckoutPage() {
 
   // Redirect if cart is empty
   useEffect(() => {
-    if (cart.length === 0) {
-      navigate('/');
+    // Add a small delay to allow cart to load
+    const timer = setTimeout(() => {
+      if (cart.length === 0) {
+        toast.error(state.language === 'ar' ? 'السلة فارغة' : 'Cart is empty');
+        navigate('/');
+      }
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [cart, navigate, state.language]);
+  
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = () => {
+      // Small delay to ensure cart state is updated
+      setTimeout(() => {
+        if (cart.length === 0) {
+          navigate('/');
+        }
+      }, 100);
+    };
+    
+    window.addEventListener('cart-updated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cart-updated', handleCartUpdate);
     }
-  }, [cart, navigate]);
 
   // Calculate totals based on payment method
   const calculateTotal = () => {

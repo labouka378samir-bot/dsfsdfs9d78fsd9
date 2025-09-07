@@ -10,12 +10,34 @@ export const Navbar: React.FC = () => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLanguageMenu, setShowLanguageMenu] = useState(false);
   const [showCurrencyMenu, setShowCurrencyMenu] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
   const { user, signOut } = useAuth();
   const { state, setLanguage, setCurrency } = useApp();
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const cartItemsCount = state.cart.reduce((total, item) => total + item.quantity, 0);
+  // Update cart count when state changes or custom event is fired
+  useEffect(() => {
+    const updateCartCount = () => {
+      const count = state.cart.reduce((total, item) => total + item.quantity, 0);
+      setCartCount(count);
+    };
+    
+    updateCartCount();
+    
+    // Listen for cart update events
+    const handleCartUpdate = () => {
+      setTimeout(updateCartCount, 50);
+    };
+    
+    window.addEventListener('cart-updated', handleCartUpdate);
+    
+    return () => {
+      window.removeEventListener('cart-updated', handleCartUpdate);
+    };
+  }, [state.cart]);
+  
+  const cartItemsCount = cartCount;
 
   const languages = [
     {
