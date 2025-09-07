@@ -26,10 +26,8 @@ export function Footer() {
                 alt="ATHMANEBZN STORE" 
                 className="h-6 w-6 sm:h-8 sm:w-8 object-contain"
               />
-              <span className="text-xl sm:text-2xl font-brand font-bold text-primary-500 tracking-wider">
-                <span className="font-dripping text-xl sm:text-2xl text-primary-500 drop-shadow-lg">
-                  ATHMANEBZN
-                </span>
+              <span className="text-xl sm:text-2xl font-bold text-primary-500 tracking-wider sm:font-dripping sm:drop-shadow-lg">
+                ATHMANEBZN
               </span>
             </div>
             <p className="text-secondary-400 text-xs sm:text-sm leading-relaxed">

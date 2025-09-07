@@ -104,10 +104,8 @@ export const Navbar: React.FC = () => {
               alt="ATHMANEBZN STORE" 
               className="h-8 w-8 sm:h-10 sm:w-10 object-contain flex-shrink-0"
             />
-            <span className="text-lg sm:text-2xl font-brand font-bold text-primary-500 tracking-wider truncate">
-              <span className="font-dripping text-xl sm:text-2xl text-primary-500 drop-shadow-lg transform hover:scale-105 transition-all duration-300">
-                ATHMANEBZN
-              </span>
+            <span className="text-lg sm:text-2xl font-bold text-primary-500 tracking-wider truncate sm:font-dripping sm:drop-shadow-lg sm:transform sm:hover:scale-105 sm:transition-all sm:duration-300">
+              ATHMANEBZN
             </span>
           </Link>
 
