@@ -32,15 +32,6 @@ export function ProductGrid() {
   useEffect(() => {
     loadProducts();
   }, [selectedCategory]);
-  
-  // Refresh products when app state changes (for real-time updates)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadProducts();
-    }, 30000); // Refresh every 30 seconds
-    
-    return () => clearInterval(interval);
-  }, []);
 
   const loadProducts = async () => {
     setIsLoading(true);
@@ -71,12 +62,6 @@ export function ProductGrid() {
         setProducts([]);
         return;
       }
-      
-      console.log('Loaded products:', data?.map(p => ({ 
-        name: p.translations?.find(t => t.language === 'en')?.name, 
-        is_out_of_stock: p.is_out_of_stock 
-      })));
-      
       setProducts(data || []);
     } catch (error) {
       console.error('Error loading products:', error);

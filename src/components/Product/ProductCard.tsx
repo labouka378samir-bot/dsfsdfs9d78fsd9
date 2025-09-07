@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Eye, Clock, Info, X } from 'lucide-react';
+import { ShoppingCart, Eye, Clock, Info } from 'lucide-react';
 import { Product } from '../../types';
 import { useApp } from '../../contexts/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -29,15 +29,8 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
   
   const currencySymbol = state.currency === 'USD' ? '$' : 'دج';
   
-  // Debug log to check product stock status
-  console.log(`Product ${name} - is_out_of_stock:`, product.is_out_of_stock);
-  
   const handleSeeDetails = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    // Don't open modal if product is out of stock
-    if (product.is_out_of_stock) {
-      return;
-    }
     setShowModal(true);
   };
 
@@ -134,17 +127,11 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
                   : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-lg transform hover:scale-[1.02]'
               }`}
             >
-              {product.is_out_of_stock ? (
-                <>
-                  <X className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
-                  {state.language === 'ar' ? 'نفد المخزون' : 'Out of Stock'}
-                </>
-              ) : (
-                <>
-                  <Info className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
-                  {state.language === 'ar' ? 'عرض التفاصيل' : 'See Details'}
-                </>
-              )}
+              <Info className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
+              {product.is_out_of_stock 
+                ? (state.language === 'ar' ? 'نفد المخزون' : 'Out of Stock')
+                : (state.language === 'ar' ? 'عرض التفاصيل' : 'See Details')
+              }
             </button>
           </div>
         </div>

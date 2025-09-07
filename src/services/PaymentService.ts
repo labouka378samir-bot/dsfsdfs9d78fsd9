@@ -515,21 +515,9 @@ class PaymentService {
               .eq('id', item.id);
 
             // Reduce stock
-            await adminClient
-              .from('products')
-              .update({
-                stock_quantity: Math.max(0, product.stock_quantity - item.quantity)
-              })
-              .eq('id', product.id);
           }
         } else {
-          // Manual fulfillment - just reduce stock
-          await adminClient
-            .from('products')
-            .update({
-              stock_quantity: Math.max(0, product.stock_quantity - item.quantity)
-            })
-            .eq('id', product.id);
+          // Manual fulfillment - no stock reduction needed
         }
       }
 

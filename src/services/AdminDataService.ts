@@ -46,9 +46,6 @@ export interface EnhancedProduct extends Omit<Product, 'translations'> {
   // Visual
   badges?: string[]; // ['Best Value', 'New', 'Hot', 'Limited']
   logo_url?: string;
-  
-  // Stock status
-  is_out_of_stock: boolean;
 }
 
 export interface CodeData {
@@ -163,12 +160,22 @@ class AdminDataService {
 
       const { error: translationError } = await client
         .from('product_translations')
-        .insert(translations);
+        .upsert(translations, { 
+          onConflict: 'product_id,language' 
+        });
 
       if (translationError) throw translationError;
 
-      // Handle variants if pricing model is variants
-      if (productData.pricing_model === 'variants' && productData.variants && productData.variants.length > 0) {
+      // Auto-calculate USD price if not provided
+      if (productData.price_dzd && !productData.price_usd) {
+        const calculatedUsdPrice = productData.price_dzd / 250; // Default exchange rate
+        await client
+          .from('products')
+          .update({ price_usd: Math.round(calculatedUsdPrice * 100) / 100 })
+          .eq('id', product.id);
+      }
+
+      if (productData.pricing_model === 'variants' && productData.variants?.length) {
         const variantInserts = productData.variants.map(variant => ({
           product_id: product.id,
           name: variant.name,
@@ -222,8 +229,6 @@ class AdminDataService {
       productUpdates.updated_at = new Date().toISOString();
 
       const client = createServiceClient();
-      
-      console.log('Updating product with data:', productUpdates);
 
       if (Object.keys(productUpdates).length > 0) {
         const { error: productError } = await client
@@ -231,12 +236,7 @@ class AdminDataService {
           .update(productUpdates)
           .eq('id', id);
 
-        if (productError) {
-          console.error('Product update error:', productError);
-          throw productError;
-        }
-        
-        console.log('Product updated successfully');
+        if (productError) throw productError;
       }
 
       const languages = ['ar', 'en', 'fr'] as const;
@@ -251,13 +251,17 @@ class AdminDataService {
           if (updates[descKey] !== undefined) translationUpdate.description = updates[descKey];
           if (updates[noteKey] !== undefined) translationUpdate.activation_instructions = updates[noteKey];
 
-          await client
+          const { error: translationError } = await client
             .from('product_translations')
             .upsert({
               product_id: id,
               language: lang,
               ...translationUpdate
+            }, { 
+              onConflict: 'product_id,language' 
             });
+
+          if (translationError) throw translationError;
         }
       }
 
@@ -272,7 +276,6 @@ class AdminDataService {
             duration_unit: variant.duration_unit,
             price_usd: variant.price_usd,
             price_dzd: variant.price_dzd,
-            fulfillment_type: variant.fulfillment_type,
             is_out_of_stock: variant.is_out_of_stock,
             is_default: variant.is_default
           }));
@@ -324,7 +327,6 @@ class AdminDataService {
         .select(`
           *,
           translations:product_translations(*),
-          variants:product_variants(*),
           category:categories(
             id,
             slug,
@@ -700,7 +702,7 @@ class AdminDataService {
       price_dzd: data.price_dzd || 0,
       duration_days: data.duration_days || 0,
       fulfillment_type: data.fulfillment_type || 'manual',
-      is_out_of_stock: data.is_out_of_stock || false,
+      is_out_of_stock: Boolean(data.is_out_of_stock),
       is_active: data.is_active !== undefined ? data.is_active : true,
       image_url: data.image_url || '',
       logo_url: data.logo_url || '',

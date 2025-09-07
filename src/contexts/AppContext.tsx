@@ -205,7 +205,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('product_id', productId)
         .eq(user ? 'user_id' : 'session_id', user ? user.id : sessionId)
-        .eq('variant_id', variantId || '')
+        .eq('variant_id', variantId || null)
         .maybeSingle();
 
       if (existingItem) {
