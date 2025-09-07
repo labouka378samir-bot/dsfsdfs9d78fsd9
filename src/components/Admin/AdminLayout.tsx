@@ -150,7 +150,7 @@ export function AdminLayout({ children, activeTab, onTabChange }: AdminLayoutPro
               </button>
 
               {/* Language Selector */}
-              <div className="relative hidden">
+              <div className="relative hidden md:block">
                 <select
                   value={state.language}
                   onChange={(e) => setLanguage(e.target.value as any)}
