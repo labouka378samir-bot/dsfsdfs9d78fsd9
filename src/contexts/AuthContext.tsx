@@ -57,24 +57,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string, username: string, phone?: string) => {
     setIsLoading(true);
     try {
-      // التحقق من توفر الإيميل
-      const { data: emailCheck } = await supabase.rpc('check_email_availability', {
-        email_to_check: email
-      });
-      
-      if (!emailCheck) {
-        throw new Error('EMAIL_ALREADY_EXISTS');
-      }
-
-      // التحقق من توفر اليوزرنايم
-      const { data: usernameCheck } = await supabase.rpc('check_username_availability', {
-        username_to_check: username
-      });
-      
-      if (!usernameCheck) {
-        throw new Error('USERNAME_ALREADY_EXISTS');
-      }
-
       // Check for temp/fake emails and reject them
       const tempEmailDomains = [
         'tempmail.org', '10minutemail.com', 'guerrillamail.com', 'mailinator.com',
@@ -96,89 +78,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: undefined, // Disable email confirmation
           data: {
-            username: username,
-            phone: phone
+            username: username.trim(),
+            phone: phone?.trim() || null
           }
         }
       });
 
       if (error) throw error;
       
-      // Auto sign in after successful signup
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (signInError) {
-        // If auto sign-in fails, still show success but ask user to sign in manually
-        toast.success('ACCOUNT_CREATED_SIGNIN_REQUIRED');
-        throw signInError;
-      }
-      
-      toast.success('ACCOUNT_CREATED_SUCCESS');
+      toast.success('Account created successfully! Please sign in.');
     } catch (error: any) {
-      // Handle different error types with proper language support
-      handleSignUpError(error);
+      console.error('Signup error:', error);
+      
+      if (error.message?.includes('User already registered')) {
+        toast.error('This email is already registered. Please use a different email or sign in.');
+      } else if (error.message?.includes('TEMP_EMAIL_NOT_ALLOWED')) {
+        toast.error('Temporary email addresses are not allowed. Please use a real email address.');
+      } else {
+        toast.error('Failed to create account. Please try again.');
+      }
       throw error;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Helper method to handle signup errors with proper language support
-  const handleSignUpError = (error: any) => {
-    const currentLanguage = localStorage.getItem('preferred_language') || 'en';
-    
-    const errorMessages = {
-      EMAIL_ALREADY_EXISTS: {
-        ar: 'هذا الإيميل مستخدم بالفعل. يرجى استخدام إيميل آخر.',
-        en: 'This email is already in use. Please use a different email.'
-      },
-      USERNAME_ALREADY_EXISTS: {
-        ar: 'اسم المستخدم مستخدم بالفعل. يرجى اختيار اسم آخر.',
-        en: 'This username is already taken. Please choose a different username.'
-      },
-      TEMP_EMAIL_NOT_ALLOWED: {
-        ar: 'يُمنع استخدام الإيميلات المؤقتة. يرجى استخدام إيميل حقيقي.',
-        en: 'Temporary email addresses are not allowed. Please use a real email address.'
-      },
-      ACCOUNT_CREATED_SUCCESS: {
-        ar: 'تم إنشاء الحساب وتسجيل الدخول بنجاح!',
-        en: 'Account created and signed in successfully!'
-      },
-      ACCOUNT_CREATED_SIGNIN_REQUIRED: {
-        ar: 'تم إنشاء الحساب بنجاح! يرجى تسجيل الدخول.',
-        en: 'Account created successfully! Please sign in.'
-      },
-      DEFAULT_ERROR: {
-        ar: 'فشل في إنشاء الحساب. يرجى المحاولة مرة أخرى.',
-        en: 'Failed to create account. Please try again.'
-      }
-    };
-
-    const errorType = error.message;
-    const message = errorMessages[errorType as keyof typeof errorMessages];
-    
-    if (message) {
-      toast.error(message[currentLanguage as 'ar' | 'en']);
-    } else {
-      // Handle Supabase auth errors
-      if (error.message?.includes('User already registered')) {
-        toast.error(errorMessages.EMAIL_ALREADY_EXISTS[currentLanguage as 'ar' | 'en']);
-      } else if (error.message?.includes('duplicate key value violates unique constraint')) {
-        if (error.message.includes('username')) {
-          toast.error(errorMessages.USERNAME_ALREADY_EXISTS[currentLanguage as 'ar' | 'en']);
-        } else {
-          toast.error(errorMessages.EMAIL_ALREADY_EXISTS[currentLanguage as 'ar' | 'en']);
-        }
-      } else {
-        toast.error(errorMessages.DEFAULT_ERROR[currentLanguage as 'ar' | 'en']);
-      }
-    }
-  };
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
