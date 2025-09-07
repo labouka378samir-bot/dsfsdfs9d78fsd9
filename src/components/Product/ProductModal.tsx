@@ -4,7 +4,7 @@ import { Product } from '../../types';
 import { useApp } from '../../contexts/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { LoginRequiredModal } from './LoginRequiredModal';
+import { LoginRequiredModal } from './LoginRequiredModal.tsx';
 import toast from 'react-hot-toast';
 
 interface ProductModalProps {
