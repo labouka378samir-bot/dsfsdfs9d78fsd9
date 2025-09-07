@@ -179,6 +179,8 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {/* Basic Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Hide base price/duration when using variants */}
+            {formData.pricing_model !== 'variants' && (
             {/* English Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -212,6 +214,8 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
 
           {/* Descriptions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Hide base price/duration when using variants */}
+            {formData.pricing_model !== 'variants' && (
             {/* English Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -245,6 +249,8 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
 
           {/* Pricing */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Hide base price/duration when using variants */}
+            {formData.pricing_model !== 'variants' && (
             {/* DZD Price */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -288,6 +294,8 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
 
           {/* Category and Duration */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Hide base price/duration when using variants */}
+            {formData.pricing_model !== 'variants' && (
             {/* Category */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -325,10 +333,13 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
                 />
               </div>
             </div>
+            )}
           </div>
 
           {/* Fulfillment Type and Stock Status */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Hide base price/duration when using variants */}
+            {formData.pricing_model !== 'variants' && (
             {/* Fulfillment Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -367,6 +378,8 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
 
           {/* Active Status and Image */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Hide base price/duration when using variants */}
+            {formData.pricing_model !== 'variants' && (
             {/* Active Status */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -407,7 +420,13 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
             </label>
             <select
               value={formData.pricing_model}
-              onChange={(e) => setFormData({ ...formData, pricing_model: e.target.value as any })}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                pricing_model: e.target.value as any,
+                variants: (e.target.value === 'variants' && (!prev.variants || prev.variants.length === 0)) ? [
+                  { name: { en: '1 Month', ar: 'شهر واحد' }, duration_value: 1, duration_unit: 'months', price_usd: 0, price_dzd: 0, fulfillment_type: prev.fulfillment_type || 'manual', is_out_of_stock: false, is_default: true }
+                ] : prev.variants
+              }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="simple">Simple Pricing</option>
@@ -427,7 +446,7 @@ export function ProductEditModal({ isOpen, onClose, product, onSave }: ProductEd
                 >
                   Add Variant
                 </button>
-              </div>
+</div>
 
               {formData.variants && formData.variants.length > 0 ? (
                 <div className="space-y-4">
