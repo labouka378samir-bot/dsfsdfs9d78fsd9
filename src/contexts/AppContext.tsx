@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 
 const initialState: AppState = {
   language: 'en',
-  currency: 'USD', // Will be auto-detected based on IP
+  currency: 'USD',
   theme: 'light',
   cart: [],
   settings: {
@@ -64,61 +64,28 @@ export function useApp() {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { user } = useAuth();
-  const [isInitialized, setIsInitialized] = React.useState(false);
-  const [userIP, setUserIP] = React.useState<string>('');
-  const [userCountry, setUserCountry] = React.useState<string>('');
-  const [isQuickStart, setIsQuickStart] = React.useState(false);
 
-  // Auto-detect currency based on IP location (Algeria = DZD, others = USD)
-  const detectCurrencyFromIP = async () => {
-    // Check for saved preferences first (instant)
+  // Initialize immediately with saved preferences or defaults
+  useEffect(() => {
+    // Get saved preferences instantly
     const savedLanguage = localStorage.getItem('preferred_language') as Language;
     const savedCurrency = localStorage.getItem('preferred_currency') as Currency;
     
-    if (savedLanguage && savedCurrency) {
-      // User has preferences - use them immediately
+    if (savedLanguage) {
       dispatch({ type: 'SET_LANGUAGE', payload: savedLanguage });
-      dispatch({ type: 'SET_CURRENCY', payload: savedCurrency });
-      setIsInitialized(true);
-      return;
     }
     
-    // No saved preferences - quick start with defaults
-    dispatch({ type: 'SET_LANGUAGE', payload: 'en' });
-    dispatch({ type: 'SET_CURRENCY', payload: 'USD' });
-    setIsInitialized(true);
-
-    try {
-      // Use faster IP detection with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second timeout
-      
-      const response = await fetch('https://ipapi.co/json/', {
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      
-      const data = await response.json();
-      
-      // Store user IP and country info
-      setUserIP(data.ip || 'unknown');
-      setUserCountry(data.country_code || 'UNKNOWN');
-      
-      // Determine currency based on country
-      const currency: Currency = data.country_code === 'DZ' ? 'DZD' : 'USD';
-      
-      // Update currency if different from default
-      if (currency !== 'USD') {
-        dispatch({ type: 'SET_CURRENCY', payload: currency });
-        localStorage.setItem('preferred_currency', currency);
-      }
-      
-    } catch (error: any) {
-      // Silently fail - user already has defaults set
-      setUserIP('unknown');
-      setUserCountry('UNKNOWN');
+    if (savedCurrency) {
+      dispatch({ type: 'SET_CURRENCY', payload: savedCurrency });
     }
-  };
+    
+    // Load data in background without blocking UI
+    setTimeout(() => {
+      refreshSettings();
+      refreshCategories();
+      refreshCart();
+    }, 100);
+  }, []);
 
   // Generate session ID for anonymous users
   const getSessionId = () => {
@@ -147,7 +114,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           *,
           product:products(
             *,
-            translations:product_translations(*)
+            translations:product_translations(*),
+            variants:product_variants(*)
           )
         `);
 
@@ -237,6 +205,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .eq('product_id', productId)
         .eq(user ? 'user_id' : 'session_id', user ? user.id : sessionId)
+        .eq('variant_id', variantId || '')
         .maybeSingle();
 
       if (existingItem) {
@@ -343,19 +312,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Initialize app data
-  useEffect(() => {
-    detectCurrencyFromIP();
-    // Load settings and categories in background
-    setTimeout(() => {
-      refreshSettings();
-      refreshCategories();
-    }, 100);
-  }, []);
-
   // Load cart when user changes
   useEffect(() => {
-    refreshCart();
+    if (user !== undefined) { // Only when auth state is determined
+      refreshCart();
+    }
   }, [user]);
 
   // Set up real-time subscriptions
@@ -427,25 +388,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     refreshCategories,
   };
 
+  // Render immediately without any loading screen
   return (
     <AppContext.Provider value={value}>
-      {isInitialized ? children : (
-        <div className="min-h-screen bg-white flex items-center justify-center">
-          <div className="text-center">
-            {isQuickStart ? (
-              <div className="flex items-center space-x-2">
-                <img src="/logo.PNG" alt="ATHMANEBZN" className="h-8 w-8 animate-pulse" />
-                <span className="text-xl font-bold text-primary-500">ATHMANEBZN</span>
-              </div>
-            ) : (
-              <>
-                <div className="animate-spin w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-                <p className="text-secondary-600 text-sm">Loading...</p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {children}
     </AppContext.Provider>
   );
 }

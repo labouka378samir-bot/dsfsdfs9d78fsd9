@@ -30,62 +30,35 @@ export function ProductGrid() {
   }, [searchQuery]);
 
   useEffect(() => {
-    // Load products immediately
     loadProducts();
-    
-    // Set up real-time subscription for live product updates
-    const subscription = supabase
-      .channel('products-changes')
-      .on('postgres_changes', 
-          { event: '*', schema: 'public', table: 'products' },
-          () => {
-            console.log('Products updated, refreshing product grid...');
-            loadProducts();
-          }
-      )
-      .subscribe();
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [selectedCategory]);
 
   const loadProducts = async () => {
-    // Only show loading spinner on first load
-    if (products.length === 0) {
-      setIsLoading(true);
-    }
+    setIsLoading(true);
     
     try {
-      
       let query = supabase
         .from('products')
         .select(`
           *,
           translations:product_translations(*),
-          variants:product_variants(*),
-          category:categories(
-            id,
-            slug,
-            translations:category_translations(*)
-          )
+          variants:product_variants(*)
         `)
-        .eq('is_active', true); // Show all active products, even if out of stock
+        .eq('is_active', true)
+        .limit(20); // Limit initial load
 
       if (selectedCategory) {
         query = query.eq('category_id', selectedCategory);
       }
 
-      // Fixed sorting: Stock availability first, then display priority, then creation date
       query = query
-        .order('stock_quantity', { ascending: false })
-        .order('display_priority', { ascending: false })
-        .order('created_at', { ascending: false });
+        .order('is_out_of_stock', { ascending: true })
+        .order('display_priority', { ascending: false });
       
       const { data, error } = await query;
 
       if (error) {
-        console.warn('Products table not found or relationship error:', error);
+        console.error('Error loading products:', error);
         setProducts([]);
         return;
       }
@@ -101,14 +74,11 @@ export function ProductGrid() {
   // Memoized filtered products to prevent unnecessary recalculations
   const filteredProducts = React.useMemo(() => {
     if (!debouncedSearchQuery) return products;
-    
-    const name = getTranslation(product.translations, 'name').toLowerCase();
-    const description = getTranslation(product.translations, 'description').toLowerCase();
-    const query = debouncedSearchQuery.toLowerCase();
-    
+
     return products.filter(product => {
       const name = getTranslation(product.translations, 'name').toLowerCase();
       const description = getTranslation(product.translations, 'description').toLowerCase();
+      const query = debouncedSearchQuery.toLowerCase();
       
       return name.includes(query) || description.includes(query);
     });

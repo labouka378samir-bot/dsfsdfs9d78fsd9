@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Eye, Clock, Info } from 'lucide-react';
+import { ShoppingCart, Eye, Clock, Info, X } from 'lucide-react';
 import { Product } from '../../types';
 import { useApp } from '../../contexts/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -31,6 +31,10 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
   
   const handleSeeDetails = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    // Don't open modal if product is out of stock
+    if (product.is_out_of_stock) {
+      return;
+    }
     setShowModal(true);
   };
 
@@ -65,7 +69,7 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
           </div>
           
           {/* Out of Stock Badge */}
-          {product.stock_quantity <= 0 && (
+          {product.is_out_of_stock && (
             <div className="absolute top-3 right-3 rtl:left-3 rtl:right-auto bg-orange-500 text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-lg">
               {t('product.out_of_stock')}
             </div>
@@ -120,10 +124,24 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
             </div>
             <button
               onClick={handleSeeDetails}
-              className="w-full px-4 py-3 rounded-lg text-base font-bold transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700"
+              disabled={product.is_out_of_stock}
+              className={`w-full px-4 py-3 rounded-lg text-base font-bold transition-all duration-200 shadow-md flex items-center justify-center ${
+                product.is_out_of_stock
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 hover:shadow-lg transform hover:scale-[1.02]'
+              }`}
             >
-              <Info className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
-              {state.language === 'ar' ? 'عرض التفاصيل' : 'See Details'}
+              {product.is_out_of_stock ? (
+                <>
+                  <X className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
+                  {state.language === 'ar' ? 'نفد المخزون' : 'Out of Stock'}
+                </>
+              ) : (
+                <>
+                  <Info className="h-5 w-5 mr-2 rtl:ml-2 rtl:mr-0" />
+                  {state.language === 'ar' ? 'عرض التفاصيل' : 'See Details'}
+                </>
+              )}
             </button>
           </div>
         </div>

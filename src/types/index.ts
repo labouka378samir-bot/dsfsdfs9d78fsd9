@@ -30,7 +30,7 @@ export interface Product {
   price_dzd: number;
   duration_days: number;
   fulfillment_type: 'auto' | 'manual';
-  stock_quantity: number;
+  is_out_of_stock: boolean;
   is_active: boolean;
   image_url: string;
   logo_url?: string;
@@ -57,7 +57,6 @@ export interface ProductVariant {
   price_usd: number;
   price_dzd: number;
   fulfillment_type: 'auto' | 'manual' | 'assisted';
-  stock_count: number;
   is_out_of_stock: boolean;
   is_default: boolean;
   created_at?: string;

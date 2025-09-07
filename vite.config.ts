@@ -27,28 +27,19 @@ export default defineConfig({
       'lucide-react',
       'react-hot-toast'
     ],
-    exclude: ['html2canvas', 'jspdf'],
+    exclude: [],
+    force: true
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
+    minify: 'esbuild',
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
         manualChunks: {
           'react-vendor': ['react', 'react-dom'],
-          supabase: ['@supabase/supabase-js'],
-          'ui-vendor': ['lucide-react', 'react-hot-toast'],
-          'router-vendor': ['react-router-dom'],
-          'payment-vendor': ['@paypal/react-paypal-js'],
-          'utils-vendor': ['html2canvas', 'jspdf']
+          'vendor': ['@supabase/supabase-js', 'lucide-react', 'react-hot-toast', 'react-router-dom']
         }
       }
     }

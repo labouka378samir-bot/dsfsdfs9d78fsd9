@@ -11,7 +11,6 @@ export interface ProductVariant {
   price_usd: number;
   price_dzd: number;
   fulfillment_type: 'auto' | 'manual' | 'assisted';
-  stock_count: number;
   is_out_of_stock: boolean;
   is_default: boolean;
 }
@@ -47,6 +46,9 @@ export interface EnhancedProduct extends Omit<Product, 'translations'> {
   // Visual
   badges?: string[]; // ['Best Value', 'New', 'Hot', 'Limited']
   logo_url?: string;
+  
+  // Stock status
+  is_out_of_stock: boolean;
 }
 
 export interface CodeData {
@@ -118,7 +120,7 @@ class AdminDataService {
           price_dzd: productData.price_dzd || 0,
           duration_days: productData.duration_days || 0,
           fulfillment_type: productData.fulfillment_type || 'manual',
-          stock_quantity: productData.stock_quantity || 0,
+          is_out_of_stock: productData.is_out_of_stock || false,
           is_active: productData.is_active ?? true,
           image_url: productData.image_url || '',
           logo_url: productData.logo_url || '',
@@ -165,16 +167,8 @@ class AdminDataService {
 
       if (translationError) throw translationError;
 
-      // Auto-calculate USD price if not provided
-      if (formData.price_dzd && !formData.price_usd) {
-        const calculatedUsdPrice = formData.price_dzd / 250; // Default exchange rate
-        await client
-          .from('products')
-          .update({ price_usd: Math.round(calculatedUsdPrice * 100) / 100 })
-          .eq('id', order.id);
-      }
-
-      if (productData.pricing_model === 'variants' && productData.variants?.length) {
+      // Handle variants if pricing model is variants
+      if (productData.pricing_model === 'variants' && productData.variants && productData.variants.length > 0) {
         const variantInserts = productData.variants.map(variant => ({
           product_id: product.id,
           name: variant.name,
@@ -183,7 +177,6 @@ class AdminDataService {
           price_usd: variant.price_usd,
           price_dzd: variant.price_dzd,
           fulfillment_type: variant.fulfillment_type,
-          stock_count: variant.stock_count,
           is_out_of_stock: variant.is_out_of_stock,
           is_default: variant.is_default
         }));
@@ -214,7 +207,7 @@ class AdminDataService {
       if (updates.price_dzd !== undefined) productUpdates.price_dzd = updates.price_dzd;
       if (updates.duration_days !== undefined) productUpdates.duration_days = updates.duration_days;
       if (updates.fulfillment_type) productUpdates.fulfillment_type = updates.fulfillment_type;
-      if (updates.stock_quantity !== undefined) productUpdates.stock_quantity = updates.stock_quantity;
+      if (updates.is_out_of_stock !== undefined) productUpdates.is_out_of_stock = updates.is_out_of_stock;
       if (updates.is_active !== undefined) productUpdates.is_active = updates.is_active;
       if (updates.image_url !== undefined) productUpdates.image_url = updates.image_url;
       if (updates.logo_url !== undefined) productUpdates.logo_url = updates.logo_url;
@@ -273,7 +266,6 @@ class AdminDataService {
             price_usd: variant.price_usd,
             price_dzd: variant.price_dzd,
             fulfillment_type: variant.fulfillment_type,
-            stock_count: variant.stock_count,
             is_out_of_stock: variant.is_out_of_stock,
             is_default: variant.is_default
           }));
@@ -325,6 +317,7 @@ class AdminDataService {
         .select(`
           *,
           translations:product_translations(*),
+          variants:product_variants(*),
           category:categories(
             id,
             slug,
@@ -700,7 +693,7 @@ class AdminDataService {
       price_dzd: data.price_dzd || 0,
       duration_days: data.duration_days || 0,
       fulfillment_type: data.fulfillment_type || 'manual',
-      stock_quantity: data.stock_quantity || 0,
+      is_out_of_stock: data.is_out_of_stock || false,
       is_active: data.is_active !== undefined ? data.is_active : true,
       image_url: data.image_url || '',
       logo_url: data.logo_url || '',

@@ -50,16 +50,3 @@ export const createAdminClient = () => {
   }
   return supabase;
 };
-
-// Test connection function
-export const testSupabaseConnection = async () => {
-  try {
-    const { data, error } = await supabase.from('products').select('count').limit(1);
-    if (error) {
-      return false;
-    }
-    return true;
-  } catch (error) {
-    return false;
-  }
-};

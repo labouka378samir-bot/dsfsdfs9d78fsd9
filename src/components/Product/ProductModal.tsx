@@ -48,14 +48,17 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
   }, [hasVariants, selectedVariant, product.variants]);
   
   // Get stock quantity based on variant or product
-  const getStockQuantity = () => {
+  const isOutOfStock = () => {
     if (hasVariants && selectedVariant) {
-      return selectedVariant.is_out_of_stock ? 0 : selectedVariant.stock_count;
+      return selectedVariant.is_out_of_stock;
     }
-    return product.stock_quantity;
+    return product.is_out_of_stock;
   };
   
-  const stockQuantity = getStockQuantity();
+  const outOfStock = isOutOfStock();
+  
+  // Define stockQuantity based on out of stock status
+  const stockQuantity = outOfStock ? 0 : 999;
   
   const handleAddToCart = async () => {
     if (stockQuantity <= 0) return;
@@ -112,14 +115,14 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
               <div className="text-8xl">📦</div>
             )}
             
-            {product.stock_quantity <= 0 && (
+            {product.is_out_of_stock && (
               <div className="absolute top-4 left-4 bg-orange-500 text-white px-3 py-1 rounded font-semibold">
                 {t('product.out_of_stock')}
               </div>
             )}
           </div>
           
-          {stockQuantity <= 0 && (
+          {product.is_out_of_stock && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
               <p className="text-red-800 font-semibold text-center">
                 {t('product.out_of_stock')}
@@ -180,17 +183,17 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                     const variantName = variant.name[state.language] || variant.name.en || `Option ${index + 1}`;
                     const variantPrice = state.currency === 'USD' ? variant.price_usd : 
                       variant.price_dzd || (variant.price_usd * state.settings.exchange_rate_usd_to_dzd);
-                    const isOutOfStock = variant.is_out_of_stock || variant.stock_count <= 0;
+                    const isVariantOutOfStock = variant.is_out_of_stock;
                     
                     return (
                       <button
                         key={index}
                         onClick={() => setSelectedVariant(variant)}
-                        disabled={isOutOfStock}
+                        disabled={isVariantOutOfStock}
                         className={`w-full p-4 border-2 rounded-lg text-left rtl:text-right transition-all duration-200 ${
                           selectedVariant === variant
                             ? 'border-primary-500 bg-primary-50'
-                            : isOutOfStock
+                            : isVariantOutOfStock
                             ? 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
                             : 'border-gray-200 hover:border-gray-300 bg-white hover:bg-gray-50'
                         }`}
@@ -204,7 +207,7 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                                   {state.language === 'ar' ? 'الأكثر شعبية' : 'Most Popular'}
                                 </span>
                               )}
-                              {isOutOfStock && (
+                              {isVariantOutOfStock && (
                                 <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium">
                                   {state.language === 'ar' ? 'نفد المخزون' : 'Out of Stock'}
                                 </span>
@@ -223,11 +226,6 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                             <div className="text-lg font-bold text-primary-600">
                               {currencySymbol}{variantPrice.toFixed(2)}
                             </div>
-                            {!isOutOfStock && (
-                              <div className="text-xs text-gray-500">
-                                {state.language === 'ar' ? 'متوفر' : 'Available'}: {variant.stock_count}
-                              </div>
-                            )}
                           </div>
                           {selectedVariant === variant && (
                             <div className="ml-3 rtl:mr-3 rtl:ml-0">
@@ -293,16 +291,16 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
             <div className="flex space-x-4 rtl:space-x-reverse">
               <button
                 onClick={handleAddToCart}
-                disabled={stockQuantity <= 0 || isLoading || (hasVariants && !selectedVariant)}
+                disabled={outOfStock || isLoading || (hasVariants && !selectedVariant)}
                 className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
-                  stockQuantity <= 0 || (hasVariants && !selectedVariant)
+                  outOfStock || (hasVariants && !selectedVariant)
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
                 {isLoading ? (
                   <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
-                ) : stockQuantity <= 0 ? (
+                ) : outOfStock ? (
                   <>
                     <ShoppingCart className="h-5 w-5 mr-2" />
                     {t('product.out_of_stock')}
@@ -322,14 +320,14 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
               
               <button
                 onClick={handleBuyNow}
-                disabled={stockQuantity <= 0 || isLoading || (hasVariants && !selectedVariant)}
+                disabled={outOfStock || isLoading || (hasVariants && !selectedVariant)}
                 className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors ${
-                  stockQuantity <= 0 || (hasVariants && !selectedVariant)
+                  outOfStock || (hasVariants && !selectedVariant)
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                     : 'bg-green-600 text-white hover:bg-green-700'
                 }`}
               >
-                {stockQuantity <= 0 ? t('product.out_of_stock') : 
+                {outOfStock ? t('product.out_of_stock') : 
                  hasVariants && !selectedVariant ? (state.language === 'ar' ? 'اختر نوع الاشتراك' : 'Select Option') :
                  t('common.buy_now')}
               </button>

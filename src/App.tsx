@@ -2,7 +2,6 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { AppProvider } from './contexts/AppContext';
-import { testSupabaseConnection } from './lib/supabase';
 import { HomePage } from './pages/HomePage';
 import { CartPage } from './pages/CartPage';
 import { LoginPage } from './pages/LoginPage';
