@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, } from 'react';
 import { 
   BarChart3, 
   Package, 
@@ -55,17 +55,6 @@ export function AdminDashboard() {
   
   const { state } = useApp();
   const { getTranslation } = useTranslation();
-
-  // Calculate available codes by product for auto fulfillment
-  const availableCodesByProduct = useMemo(() => {
-    const m = new Map<string, number>();
-    codes.forEach(c => {
-      if (!c.is_used) {
-        m.set(c.product_id, (m.get(c.product_id) || 0) + 1);
-      }
-    });
-    return m;
-  }, [codes]);
 
   useEffect(() => {
     // Check admin authentication
@@ -325,9 +314,7 @@ export function AdminDashboard() {
             </thead>
             <tbody>
               {filteredProducts.map((product) => {
-                const isAuto = product.fulfillment_type === 'auto';
-                const qty = isAuto ? (availableCodesByProduct.get(product.id) || 0) : (product.is_out_of_stock ? 0 : 1);
-                const inStock = isAuto ? qty > 0 : !product.is_out_of_stock;
+                const inStock = !product.is_out_of_stock;
                 
                 return (
                   <tr key={product.id} className="border-b border-gray-100 hover:bg-gray-50">
@@ -369,9 +356,7 @@ export function AdminDashboard() {
                       <span className={`inline-flex px-3 py-1 text-xs font-medium rounded-full ${
                         inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {isAuto
-                          ? (inStock ? `${qty} in stock` : 'Out of stock')
-                          : (inStock ? 'In stock' : 'Out of stock')}
+                        {inStock ? 'In stock' : 'Out of stock'}
                       </span>
                     </td>
                     <td className="py-4 px-6">

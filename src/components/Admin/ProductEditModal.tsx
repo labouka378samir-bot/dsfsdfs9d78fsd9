@@ -314,16 +314,16 @@ export function ProductEditModal({ product, isOpen, onClose, onSave }: ProductEd
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
+                
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Stock Status</label>
                 <select
-                  value={formData.is_active ? 'active' : 'inactive'}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.value === 'active' }))}
+                  value={formData.is_out_of_stock ? 'out_of_stock' : 'in_stock'}
+                  onChange={(e) => setFormData(prev => ({ ...prev, is_out_of_stock: e.target.value === 'out_of_stock' }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
+                  <option value="in_stock">In Stock</option>
+                  <option value="out_of_stock">Out of Stock</option>
                 </select>
               </div>
               <div>
@@ -541,21 +541,19 @@ export function ProductEditModal({ product, isOpen, onClose, onSave }: ProductEd
                     placeholder="30"
                   />
                 </div>
-                {formData.fulfillment_type !== 'auto' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Stock Status
-                    </label>
-                    <select
-                      value={formData.is_out_of_stock ? 'out_of_stock' : 'in_stock'}
-                      onChange={(e) => setFormData(prev => ({ ...prev, is_out_of_stock: e.target.value === 'out_of_stock' }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="in_stock">In Stock</option>
-                      <option value="out_of_stock">Out of Stock</option>
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Stock Status
+                  </label>
+                  <select
+                    value={formData.is_out_of_stock ? 'out_of_stock' : 'in_stock'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, is_out_of_stock: e.target.value === 'out_of_stock' }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="in_stock">In Stock</option>
+                    <option value="out_of_stock">Out of Stock</option>
+                  </select>
+                </div>
               </div>
             )}
 
@@ -687,11 +685,8 @@ export function ProductEditModal({ product, isOpen, onClose, onSave }: ProductEd
           {/* Fulfillment */}
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Fulfillment</h3>
-            
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Fulfillment Type
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fulfillment Type</label>
               <select
                 value={formData.fulfillment_type || 'manual'}
                 onChange={(e) => setFormData(prev => ({ ...prev, fulfillment_type: e.target.value as any }))}
@@ -701,46 +696,10 @@ export function ProductEditModal({ product, isOpen, onClose, onSave }: ProductEd
                 <option value="manual">Manual</option>
                 <option value="assisted">Assisted</option>
               </select>
-              <div className="mt-1 text-xs text-gray-500">
-                {formData.fulfillment_type === 'auto' 
-                  ? 'Stock status is determined by available codes'
-                  : 'You can manually set the stock status'
-                }
-              </div>
+              <div className="mt-1 text-xs text-gray-500">Choose how orders are fulfilled. Stock status is controlled above.</div>
             </div>
-
-            {/* Stock Status - Only for manual/assisted */}
-            {formData.fulfillment_type !== 'auto' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <select
-                  value={formData.is_out_of_stock ? 'out_of_stock' : 'in_stock'}
-                  onChange={(e) => setFormData(prev => ({ ...prev, is_out_of_stock: e.target.value === 'out_of_stock' }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="in_stock">In Stock</option>
-                  <option value="out_of_stock">Out of Stock</option>
-                </select>
-              </div>
-            )}
-
-            {/* Auto fulfillment info */}
-            {formData.fulfillment_type === 'auto' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center mb-2">
-                  <Key className="h-4 w-4 text-blue-600 mr-2" />
-                  <span className="text-sm font-medium text-blue-800">Automatic Fulfillment</span>
-                </div>
-                <p className="text-xs text-blue-700">
-                  Stock status is automatically determined by the number of available codes in the system. 
-                  Add codes in the "Auto Codes" section to make this product available.
-                </p>
-              </div>
-            )}
-
-            {/* Fulfillment Notes */}
+          </div>
+{/* Fulfillment Notes */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
