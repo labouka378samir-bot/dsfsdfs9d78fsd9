@@ -139,11 +139,20 @@ export function CartPage() {
                           {currencySymbol}{state.currency === 'DZD' ? Math.round(price * item.quantity) : (price * item.quantity).toFixed(2)}
                         </p>
                       </div>
-
+                    {product.image_url && product.image_url.trim() !== '' ? (
                       {/* Remove Button */}
                       <button
                         onClick={() => removeFromCart(item.id)}
                         className="text-secondary-600 hover:text-secondary-800 transition-colors p-1"
+                        loading="lazy"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            parent.innerHTML = '<div class="text-xl sm:text-2xl">📦</div>';
+                          }
+                        }}
                       >
                         <Trash2 className="h-4 w-4 sm:h-5 sm:w-5" />
                       </button>

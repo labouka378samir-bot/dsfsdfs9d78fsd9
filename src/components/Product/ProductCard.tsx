@@ -107,13 +107,21 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
             </button>
             {!product.is_out_of_stock && (
               <button
-                onClick={handleQuickAddToCart}
+            {product.image_url && product.image_url.trim() !== '' ? (
                 disabled={isLoading}
                 className="bg-blue-600/90 backdrop-blur-sm text-white p-2.5 rounded-full hover:bg-blue-700 transition-all duration-200 shadow-lg transform hover:scale-110 disabled:opacity-50"
               >
                 {isLoading ? (
                   <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
                 ) : (
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const parent = target.parentElement;
+                  if (parent) {
+                    parent.innerHTML = '<div class="text-4xl sm:text-5xl opacity-60">📦</div>';
+                  }
+                }}
                   <ShoppingCart className="h-4 w-4" />
                 )}
               </button>
