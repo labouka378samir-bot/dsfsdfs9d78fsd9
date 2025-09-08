@@ -80,14 +80,6 @@ export const ProductCard = React.memo(function ProductCard({ product }: ProductC
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
               loading="eager"
               decoding="async"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-                const parent = target.parentElement;
-                if (parent) {
-                  parent.innerHTML = '<div class="text-4xl sm:text-5xl opacity-60">📦</div>';
-                }
-              }}
             />
           ) : (
             <div className="text-4xl sm:text-5xl opacity-60">📦</div>

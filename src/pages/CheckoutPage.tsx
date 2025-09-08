@@ -364,20 +364,12 @@ export function CheckoutPage() {
                                   }`}
                                 />
                               ) : method.id === 'edahabia' ? (
-                              {product.image_url && product.image_url.trim() !== '' ? (
+                                // Use a custom logo for the Edahabia / CIB option instead of the generic icon
                                 <img
                                   src="/edahabia.jpg"
                                   alt="Edahabia / CIB"
                                   loading="lazy"
                                   className="w-6 h-6 object-contain"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    const parent = target.parentElement;
-                                    if (parent) {
-                                      parent.innerHTML = '<div class="w-5 h-5 text-primary-500"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 3a1 1 0 000 2h.01a1 1 0 100-2H5zm4 0a1 1 0 000 2h6a1 1 0 100-2H9zm0 4a1 1 0 100 2h6a1 1 0 100-2H9z" clip-rule="evenodd"></path></svg></div>';
-                                    }
-                                  }}
                                 />
                               ) : (
                                 // Fallback to the provided icon when no custom image is available
@@ -387,11 +379,7 @@ export function CheckoutPage() {
                                       ? 'text-gray-400'
                                       : 'text-orange-500'
                                   }`}
-                                <div className="w-5 h-5 text-primary-500">
-                                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm2 3a1 1 0 000 2h.01a1 1 0 100-2H5zm4 0a1 1 0 000 2h6a1 1 0 100-2H9zm0 4a1 1 0 100 2h6a1 1 0 100-2H9z" clipRule="evenodd"></path>
-                                  </svg>
-                                </div>
+                                />
                               )}
                             </div>
 
