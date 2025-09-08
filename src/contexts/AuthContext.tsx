@@ -74,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('TEMP_EMAIL_NOT_ALLOWED');
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -87,7 +87,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
       
-      toast.success('Account created successfully! Please sign in.');
+      // If user is created and confirmed, they are automatically signed in
+      if (data.user && data.session) {
+        // User is automatically signed in
+        setUser({
+          id: data.user.id,
+          email: data.user.email!,
+          username: data.user.user_metadata?.username,
+          phone: data.user.user_metadata?.phone,
+          created_at: data.user.created_at,
+        });
+        toast.success('Account created and signed in successfully!');
+      } else {
+        // Fallback: try to sign in immediately
+        try {
+          await signIn(email, password);
+        } catch (signInError) {
+          toast.success('Account created successfully! Please sign in.');
+        }
+      }
     } catch (error: any) {
       console.error('Signup error:', error);
       

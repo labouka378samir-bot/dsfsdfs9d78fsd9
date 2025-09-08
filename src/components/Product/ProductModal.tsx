@@ -93,48 +93,6 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
     }
   };
 
-  const handleBuyNow = async () => {
-    // Check if user is logged in
-    if (!user) {
-      setShowLoginModal(true);
-      return;
-    }
-    
-    if (stockQuantity <= 0) return;
-    if (hasVariants && !selectedVariant) {
-      toast.error(state.language === 'ar' ? 'يرجى اختيار نوع الاشتراك' : 'Please select a subscription type');
-      return;
-    }
-    
-    setIsLoading(true);
-    try {
-      // Add to cart first
-      if (hasVariants && selectedVariant) {
-        await addToCart(product.id, quantity, selectedVariant.id);
-      } else {
-        await addToCart(product.id, quantity);
-      }
-      
-      // Close modal and go directly to checkout
-      onClose();
-      
-      // Wait for cart to update, then navigate to checkout
-      setTimeout(() => {
-        // Force cart refresh before navigation
-        window.dispatchEvent(new CustomEvent('cart-updated'));
-        setTimeout(() => {
-          window.location.href = '/checkout';
-        }, 300);
-      }, 500);
-      
-    } catch (error) {
-      console.error('Error in buy now:', error);
-      toast.error(state.language === 'ar' ? 'حدث خطأ، يرجى المحاولة مرة أخرى' : 'An error occurred, please try again');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className={`bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto ${state.language === 'ar' ? 'rtl' : 'ltr'}`}>
@@ -334,18 +292,18 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
             </div>
             
             {/* Action Buttons */}
-            <div className="flex space-x-4 rtl:space-x-reverse">
+            <div className="flex justify-center">
               <button
                 onClick={handleAddToCart}
                 disabled={stockQuantity <= 0 || isLoading || (hasVariants && !selectedVariant)}
-                className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
+                className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center ${
                   stockQuantity <= 0 || (hasVariants && !selectedVariant)
                     ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-primary-500 text-secondary-900 hover:bg-primary-600'
                 }`}
               >
                 {isLoading ? (
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                  <div className="animate-spin w-5 h-5 border-2 border-secondary-900 border-t-transparent rounded-full"></div>
                 ) : stockQuantity <= 0 ? (
                   <>
                     <ShoppingCart className="h-5 w-5 mr-2" />
@@ -362,20 +320,6 @@ export function ProductModal({ product, onClose }: ProductModalProps) {
                     {t('common.add_to_cart')}
                   </>
                 )}
-              </button>
-              
-              <button
-                onClick={handleBuyNow}
-                disabled={stockQuantity <= 0 || isLoading || (hasVariants && !selectedVariant)}
-                className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors ${
-                  stockQuantity <= 0 || (hasVariants && !selectedVariant)
-                    ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                {stockQuantity <= 0 ? t('product.out_of_stock') : 
-                 hasVariants && !selectedVariant ? (state.language === 'ar' ? 'اختر نوع الاشتراك' : 'Select Option') :
-                 t('common.buy_now')}
               </button>
             </div>
           </div>
