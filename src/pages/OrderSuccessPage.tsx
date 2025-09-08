@@ -21,6 +21,71 @@ export function OrderSuccessPage() {
   const { getTranslation } = useTranslation();
   const orderId = searchParams.get('order');
 
+  // Send Telegram notification when order is paid and not yet notified
+  useEffect(() => {
+    const sendTelegramNotification = async () => {
+      if (!order) return;
+      if (order.status !== 'paid' && order.status !== 'delivered') return;
+      // Only notify once
+      if (order.telegram_notified) return;
+      
+      try {
+        const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+        const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+        
+        if (!botToken || !chatId) {
+          console.warn('Telegram bot token or chat ID not configured');
+          return;
+        }
+        
+        // Compose message
+        let message = `✅ New paid order!\n\n`;
+        message += `Order #: ${order.order_number}\n`;
+        message += `Date: ${new Date(order.created_at).toLocaleString()}\n`;
+        message += `Amount: ${order.currency === 'USD' ? '$' : 'دج'}${order.total_amount.toFixed(2)}\n`;
+        message += `Payment method: ${order.payment_method}\n`;
+        message += `Customer: ${order.customer_email}`;
+        
+        if (order.customer_phone) {
+          message += `\nPhone: ${order.customer_phone}`;
+        }
+        
+        // Add items info
+        if (orderItems && orderItems.length > 0) {
+          message += `\n\nItems:\n`;
+          orderItems.forEach(item => {
+            const product = item.product!;
+            const name = getTranslation(product.translations, 'name');
+            message += `• ${name} (Qty: ${item.quantity})\n`;
+          });
+        }
+        
+        // Send message via Telegram Bot API
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            chat_id: chatId, 
+            text: message,
+            parse_mode: 'HTML'
+          })
+        });
+        
+        // Update order to mark as notified using admin client
+        const adminClient = createServiceClient();
+        await adminClient
+          .from('orders')
+          .update({ telegram_notified: true })
+          .eq('id', order.id);
+          
+      } catch (err) {
+        console.error('Failed to send Telegram notification:', err);
+      }
+    };
+    
+    sendTelegramNotification();
+  }, [order, orderItems, getTranslation]);
+
   useEffect(() => {
     if (orderId) {
       loadOrderDetails();
