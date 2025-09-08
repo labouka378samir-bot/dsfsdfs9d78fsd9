@@ -68,7 +68,9 @@ export function OrdersPage() {
 
   // Exclude orders that are still pending (not paid yet).
   // We only want to show orders that have completed payment (paid, delivered, refunded, etc.)
-  const visibleOrders = filteredOrders.filter(order => order.status && order.status !== 'pending');
+  const visibleOrders = filteredOrders.filter(order => 
+    order.status && ['paid', 'delivered', 'refunded'].includes(order.status)
+  );
 
   const getStatusColor = (status: string) => {
     switch (status) {

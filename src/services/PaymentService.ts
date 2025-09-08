@@ -494,14 +494,10 @@ class PaymentService {
             .single();
 
           if (!codeError && code) {
-            // Mark code as used and assign to order item
+            // Delete the code completely to prevent reuse
             await adminClient
               .from('codes')
-              .update({
-                is_used: true,
-                used_at: new Date().toISOString(),
-                order_item_id: item.id
-              })
+              .delete()
               .eq('id', code.id);
 
             // Update order item with delivery code
@@ -514,7 +510,6 @@ class PaymentService {
               })
               .eq('id', item.id);
 
-            // Reduce stock
           }
         } else {
           // Manual fulfillment - no stock reduction needed
@@ -546,7 +541,7 @@ class PaymentService {
       
       const currencySymbol = order.currency === 'USD' ? '$' : 'دج';
       
-      let message = `🛒 *New Order Received!*\n\n`;
+      let message = `💰 *طلب جديد مدفوع!*\n\n`;
       message += `📋 *Order:* #${order.order_number}\n`;
       message += `👤 *Customer:* ${order.customer_email}\n`;
       message += `📱 *Phone:* ${order.customer_phone || 'N/A'}\n`;
@@ -563,14 +558,17 @@ class PaymentService {
         message += `  ${currencySymbol}${item.unit_price} × ${item.quantity} = ${currencySymbol}${item.total_price}\n`;
         
         if (product.fulfillment_type === 'auto') {
-          message += `  ✅ Auto-delivered\n`;
+          message += `  ✅ تم التسليم تلقائياً\n`;
+          if (item.delivery_code) {
+            message += `  🔑 Code: ${item.delivery_code}\n`;
+          }
         } else {
-          message += `  ⚠️ Manual fulfillment required\n`;
+          message += `  ⚠️ يحتاج تسليم يدوي\n`;
         }
       }
       
-      message += `\n💡 *Payment Status:* ${order.status}\n`;
-      message += `\n🔗 Check admin dashboard for details.`;
+      message += `\n✅ *حالة الدفع:* مدفوع\n`;
+      message += `\n🎉 العميل حصل على منتجاته!`;
       
       // Send to Telegram (you'll need to implement this with your bot token)
       const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;

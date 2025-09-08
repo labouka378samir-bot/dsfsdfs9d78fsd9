@@ -368,6 +368,7 @@ class AdminDataService {
             )
           )
         `)
+        .in('status', ['paid', 'delivered', 'refunded']) // Only show completed orders
         .order('created_at', { ascending: false });
 
       if (error) throw error;
