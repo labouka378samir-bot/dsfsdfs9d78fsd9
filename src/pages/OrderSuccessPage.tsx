@@ -16,251 +16,65 @@ export function OrderSuccessPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [paymentProcessed, setPaymentProcessed] = useState(false);
   
   const { state } = useApp();
   const { getTranslation } = useTranslation();
   const orderId = searchParams.get('order');
+  const paymentMethod = searchParams.get('payment');
+  const paypalToken = searchParams.get('token');
 
-  // Send Telegram notification when order is paid and not yet notified
+  // Process payment verification when returning from payment gateway
   useEffect(() => {
-    const sendTelegramNotification = async () => {
-      if (!order) return;
-      if (order.status !== 'paid' && order.status !== 'delivered') return;
-      // Only notify once
-      if (order.telegram_notified) return;
+    const processPaymentVerification = async () => {
+      if (!orderId || paymentProcessed) return;
+      
+      console.log('🔄 Processing payment verification for order:', orderId);
+      console.log('💳 Payment method:', paymentMethod);
+      console.log('🎫 PayPal token:', paypalToken);
+      
+      let paymentSuccess = false;
       
       try {
-        const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-        const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-        
-        if (!botToken || !chatId) {
-          console.warn('Telegram bot token or chat ID not configured');
-          return;
+        // Handle PayPal return
+        if (paymentMethod === 'paypal' && paypalToken) {
+          console.log('🔄 Processing PayPal capture...');
+          paymentSuccess = await paymentService.capturePayPalPayment(orderId, paypalToken);
+        }
+        // Handle Crypto return
+        else if (paymentMethod === 'crypto' && order?.payment_id) {
+          console.log('🔄 Checking crypto payment status...');
+          paymentSuccess = await paymentService.checkCryptoPaymentStatus(orderId, order.payment_id);
+        }
+        // Handle Edahabia return
+        else if (paymentMethod === 'edahabia' && order?.payment_id) {
+          console.log('🔄 Checking Edahabia payment status...');
+          paymentSuccess = await paymentService.checkEdahabiaPaymentStatus(orderId, order.payment_id);
         }
         
-        // Compose message
-        let message = `✅ New paid order!\n\n`;
-        message += `Order #: ${order.order_number}\n`;
-        message += `Date: ${new Date(order.created_at).toLocaleString()}\n`;
-        message += `Amount: ${order.currency === 'USD' ? '$' : 'دج'}${order.total_amount.toFixed(2)}\n`;
-        message += `Payment method: ${order.payment_method}\n`;
-        message += `Customer: ${order.customer_email}`;
-        
-        if (order.customer_phone) {
-          message += `\nPhone: ${order.customer_phone}`;
+        if (paymentSuccess) {
+          console.log('✅ Payment verified successfully');
+          setPaymentProcessed(true);
+          // Reload order details to show updated status
+          await loadOrderDetails();
+          toast.success('Payment confirmed! Your order has been processed.');
         }
-        
-        // Add items info
-        if (orderItems && orderItems.length > 0) {
-          message += `\n\nItems:\n`;
-          orderItems.forEach(item => {
-            const product = item.product!;
-            const name = getTranslation(product.translations, 'name');
-            message += `• ${name} (Qty: ${item.quantity})\n`;
-          });
-        }
-        
-        // Send message via Telegram Bot API
-        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            chat_id: chatId, 
-            text: message,
-            parse_mode: 'HTML'
-          })
-        });
-        
-        // Update order to mark as notified using admin client
-        const adminClient = createServiceClient();
-        await adminClient
-          .from('orders')
-          .update({ telegram_notified: true })
-          .eq('id', order.id);
-          
-      } catch (err) {
-        console.error('Failed to send Telegram notification:', err);
+      } catch (error) {
+        console.error('❌ Error processing payment verification:', error);
       }
     };
     
-    sendTelegramNotification();
-  }, [order, orderItems, getTranslation]);
+    // Only process if we have order data and haven't processed yet
+    if (order && !paymentProcessed) {
+      processPaymentVerification();
+    }
+  }, [order, orderId, paymentMethod, paypalToken, paymentProcessed]);
 
   useEffect(() => {
     if (orderId) {
       loadOrderDetails();
     }
   }, [orderId]);
-
-  // Send Telegram notification when order is paid and not yet notified
-  useEffect(() => {
-    const sendTelegramNotification = async () => {
-      if (!order) return;
-      if (order.status !== 'paid' && order.status !== 'delivered') return;
-      // Only notify once
-      if (order.telegram_notified) return;
-      try {
-        const botToken = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-        const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-        
-        if (!botToken || !chatId) {
-          console.warn('Telegram bot token or chat ID not configured');
-          return;
-        }
-        
-        // Compose message
-        let message = `✅ New paid order!\n\n`;
-        message += `Order #: ${order.order_number}\n`;
-        message += `Date: ${new Date(order.created_at).toLocaleString()}\n`;
-        message += `Amount: ${order.currency === 'USD' ? '$' : 'دج'}${order.total_amount.toFixed(2)}\n`;
-        message += `Payment method: ${order.payment_method}\n`;
-        message += `Customer: ${order.customer_email}`;
-        // Send message via Telegram Bot API
-        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: chatId, text: message })
-        });
-        // Update order to mark as notified using admin client
-        const adminClient = createServiceClient();
-        await adminClient
-          .from('orders')
-          .update({ telegram_notified: true })
-          .eq('id', order.id);
-      } catch (err) {
-        console.error('Failed to send Telegram notification:', err);
-      }
-    };
-    sendTelegramNotification();
-  }, [order]);
-
-  // Capture PayPal order on return
-  useEffect(() => {
-    const capturePayPal = async () => {
-      if (!order) return;
-      if (order.status && order.status !== 'pending') return; // Only capture if still pending
-      if (order.payment_method !== 'paypal') return;
-
-      // PayPal appends token param when redirecting back
-      const token = searchParams.get('token');
-      if (!token) return;
-      try {
-        // Get PayPal credentials
-        const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || import.meta.env.PAYPAL_CLIENT_ID;
-        const clientSecret = import.meta.env.VITE_PAYPAL_CLIENT_SECRET || import.meta.env.PAYPAL_SECRET;
-        const apiUrl = import.meta.env.VITE_PAYPAL_API_URL || import.meta.env.PAYPAL_API_URL || 'https://api-m.paypal.com';
-        if (!clientId || !clientSecret) {
-          console.error('PayPal credentials missing');
-          return;
-        }
-        // Get access token
-        const tokenResp = await fetch(`${apiUrl}/v1/oauth2/token`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Accept-Language': 'en_US',
-            'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: 'grant_type=client_credentials'
-        });
-        if (!tokenResp.ok) {
-          const errText = await tokenResp.text();
-          console.error('PayPal token error:', errText);
-          return;
-        }
-        const tokenData = await tokenResp.json();
-        const accessToken = tokenData.access_token;
-        // Capture order
-        const captureResp = await fetch(`${apiUrl}/v2/checkout/orders/${token}/capture`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`
-          }
-        });
-        const captureData = await captureResp.json();
-        if (!captureResp.ok) {
-          console.error('PayPal capture error:', captureData);
-          // Update order status to failed
-          const adminClient = createServiceClient();
-          await adminClient.from('orders').update({ status: 'failed' }).eq('id', order.id);
-          return;
-        }
-        // On success, mark order as paid and process fulfillment
-        const adminClient = createServiceClient();
-        await adminClient.from('orders').update({ status: 'paid' }).eq('id', order.id);
-        // Fulfill order (deliver codes and send Telegram via PaymentService)
-        try {
-          // call private processFulfillment via paymentService instance
-          // @ts-ignore
-          await (paymentService as any).processFulfillment(order.id);
-        } catch (err) {
-          console.error('Error during fulfillment:', err);
-        }
-        // Reload order details to reflect new status
-        await loadOrderDetails();
-      } catch (err) {
-        console.error('Error capturing PayPal payment:', err);
-      }
-    };
-    capturePayPal();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order]);
-
-  // Check crypto payment status when returning to order success page
-  useEffect(() => {
-    const checkCryptoStatus = async () => {
-      if (!order) return;
-      if (order.status && order.status !== 'pending') return;
-      if (order.payment_method !== 'crypto') return;
-      // We need payment_id from payment_data or order
-      const paymentId = (order as any).payment_id || (order.payment_data as any)?.payment_id;
-      if (!paymentId) return;
-      try {
-        const apiKey = import.meta.env.VITE_NOWPAYMENTS_API_KEY || import.meta.env.NOWPAYMENTS_API_KEY;
-        const apiUrl = import.meta.env.VITE_NOWPAYMENTS_API_URL || import.meta.env.NOWPAYMENTS_API_URL || 'https://api.nowpayments.io/v1';
-        if (!apiKey) {
-          console.warn('NOWPayments API key missing');
-          return;
-        }
-        const response = await fetch(`${apiUrl}/payment/${paymentId}`, {
-          method: 'GET',
-          headers: {
-            'x-api-key': apiKey,
-            'Content-Type': 'application/json'
-          }
-        });
-        if (!response.ok) {
-          const errData = await response.json();
-          console.error('NOWPayments status error:', errData);
-          return;
-        }
-        const statusData = await response.json();
-        const status = statusData.payment_status;
-        if (status === 'finished') {
-          const adminClient = createServiceClient();
-          await adminClient.from('orders').update({ status: 'paid' }).eq('id', order.id);
-          // Fulfill order
-          try {
-            // @ts-ignore
-            await (paymentService as any).processFulfillment(order.id);
-          } catch (err) {
-            console.error('Error during fulfillment:', err);
-          }
-          await loadOrderDetails();
-        } else if (status === 'failed' || status === 'expired') {
-          const adminClient = createServiceClient();
-          await adminClient.from('orders').update({ status: 'failed' }).eq('id', order.id);
-          await loadOrderDetails();
-        }
-      } catch (err) {
-        console.error('Error checking crypto payment status:', err);
-      }
-    };
-    checkCryptoStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [order]);
 
   const loadOrderDetails = async () => {
     try {

@@ -77,7 +77,8 @@ class PaymentService {
           total_amount: totalAmount,
           customer_email: paymentData.customerEmail,
           customer_phone: paymentData.customerPhone,
-          payment_data: {}
+          payment_data: {},
+          telegram_notified: false
         })
         .select()
         .single();
@@ -131,7 +132,6 @@ class PaymentService {
       if (!order) throw new Error('Failed to create order');
 
       // PayPal API integration
-      // Support both VITE_ prefixed and non-prefixed environment variables for PayPal credentials
       const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || import.meta.env.PAYPAL_CLIENT_ID;
       const paypalClientSecret = import.meta.env.VITE_PAYPAL_CLIENT_SECRET || import.meta.env.PAYPAL_SECRET;
       const paypalApiUrl = import.meta.env.VITE_PAYPAL_API_URL || import.meta.env.PAYPAL_API_URL || 'https://api-m.paypal.com';
@@ -183,8 +183,8 @@ class PaymentService {
             description: `Order ${order.order_number} - ATHMANEBZN Store`
           }],
           application_context: {
-            return_url: `${window.location.origin}/order-success?order=${order.id}`,
-            cancel_url: `${window.location.origin}/cart`,
+            return_url: `${window.location.origin}/order-success?order=${order.id}&payment=paypal`,
+            cancel_url: `${window.location.origin}/checkout?incomplete=true`,
             brand_name: 'ATHMANEBZN STORE',
             user_action: 'PAY_NOW',
             shipping_preference: 'NO_SHIPPING'
@@ -229,8 +229,7 @@ class PaymentService {
       return {
         success: true,
         order_id: order.id,
-        payment_id: paypalOrder.id,
-        redirect_url: approvalUrl
+        payment_id: paypalOrder.id
       };
     } catch (error: any) {
       console.error('PayPal payment error:', error);
@@ -273,10 +272,7 @@ class PaymentService {
         cryptoAmount = 3;
       }
 
-      // Determine pay currency for NOWPayments
-      // Use a network-specific USDT ticker supported by NOWPayments.  Generic "usdt" is not valid for estimates, so default
-      // to Tron network USDT ("usdttrc20").  You can change this to other supported tickers such as "usdterc20" or "usdcerc20"
-      // depending on your configured payout wallets.
+      // Use Tron USDT for crypto payments
       const payCurrency = 'usdttrc20';
 
       // Create NOWPayments payment
@@ -287,8 +283,8 @@ class PaymentService {
         order_id: order.order_number,
         order_description: `Order ${order.order_number} - ATHMANEBZN Store`,
         ipn_callback_url: `${window.location.origin}/api/crypto-webhook`,
-        success_url: `${window.location.origin}/order-success?order=${order.id}`,
-        cancel_url: `${window.location.origin}/cart`
+        success_url: `${window.location.origin}/order-success?order=${order.id}&payment=crypto`,
+        cancel_url: `${window.location.origin}/checkout?incomplete=true`
       };
 
       // Use the invoice endpoint to receive an invoice_url for redirecting the user
@@ -329,13 +325,7 @@ class PaymentService {
 
       // Redirect to payment page
       if (paymentData_response.invoice_url) {
-        try {
-          // Attempt to open in the same tab first
-          window.location.href = paymentData_response.invoice_url;
-        } catch (_) {
-          // Fallback: open in a new tab to avoid cross-origin restrictions
-          window.open(paymentData_response.invoice_url, '_blank');
-        }
+        window.location.href = paymentData_response.invoice_url;
       }
 
       toast.success('Redirecting to crypto payment...');
@@ -343,8 +333,7 @@ class PaymentService {
       return {
         success: true,
         order_id: order.id,
-        payment_id: paymentData_response.payment_id,
-        redirect_url: paymentData_response.invoice_url
+        payment_id: paymentData_response.payment_id
       };
     } catch (error: any) {
       console.error('Crypto payment error:', error);
@@ -382,12 +371,11 @@ class PaymentService {
 
       // Create Chargily payment
       const paymentRequest: ChargilyPaymentData = {
-        // Chargily API expects the amount in DZD, not in centimes. Send the plain dinar value.
         amount: Math.round(edahabiaAmount),
         currency: 'dzd',
         description: `Order ${order.order_number} - ATHMANEBZN Store`,
-        success_url: `${window.location.origin}/order-success?order=${order.id}`,
-        failure_url: `${window.location.origin}/cart`,
+        success_url: `${window.location.origin}/order-success?order=${order.id}&payment=edahabia`,
+        failure_url: `${window.location.origin}/checkout?incomplete=true`,
         webhook_endpoint: `${window.location.origin}/api/chargily-webhook`,
         metadata: {
           order_id: order.id,
@@ -439,8 +427,7 @@ class PaymentService {
       return {
         success: true,
         order_id: order.id,
-        payment_id: chargilyResponse.id || 'chargily_payment',
-        redirect_url: chargilyResponse.checkout_url
+        payment_id: chargilyResponse.id || 'chargily_payment'
       };
     } catch (error: any) {
       console.error('Edahabia payment error:', error);
@@ -452,12 +439,15 @@ class PaymentService {
     }
   }
 
-  // Process order fulfillment
-  private async processFulfillment(orderId: string): Promise<void> {
+  // Process order fulfillment with automatic code delivery
+  async processFulfillment(orderId: string): Promise<void> {
     try {
+      console.log('🚀 Starting fulfillment for order:', orderId);
+      
       // Use service client for fulfillment updates
       const adminClient = createServiceClient();
-      // Get order items
+      
+      // Get order items with product details
       const { data: orderItems, error } = await adminClient
         .from('order_items')
         .select(`
@@ -475,6 +465,13 @@ class PaymentService {
         .eq('id', orderId)
         .single();
 
+      if (!order) {
+        console.error('Order not found for fulfillment:', orderId);
+        return;
+      }
+
+      console.log('📦 Processing fulfillment for', orderItems?.length || 0, 'items');
+
       for (const item of orderItems || []) {
         const product = item.product;
         
@@ -482,6 +479,8 @@ class PaymentService {
           console.warn(`Product not found for order item ${item.id}`);
           continue;
         }
+        
+        console.log(`🔄 Processing item: ${product.sku} (${product.fulfillment_type})`);
         
         if (product.fulfillment_type === 'auto') {
           // Get available code for this product
@@ -494,6 +493,8 @@ class PaymentService {
             .single();
 
           if (!codeError && code) {
+            console.log(`✅ Found code for ${product.sku}:`, code.code);
+            
             // Delete the code completely to prevent reuse
             await adminClient
               .from('codes')
@@ -510,9 +511,12 @@ class PaymentService {
               })
               .eq('id', item.id);
 
+            console.log(`🎉 Auto-delivered code for ${product.sku}`);
+          } else {
+            console.warn(`⚠️ No available codes for product ${product.sku}`);
           }
         } else {
-          // Manual fulfillment - no stock reduction needed
+          console.log(`📞 Manual fulfillment required for ${product.sku}`);
         }
       }
 
@@ -520,11 +524,252 @@ class PaymentService {
       if (order) {
         await this.sendTelegramNotification(order, orderItems || []);
       }
-      // Send email notification (simulated)
-      console.log(`Order ${orderId} fulfilled successfully`);
+      
+      console.log(`✅ Order ${orderId} fulfilled successfully`);
       
     } catch (error: any) {
-      console.error('Error processing fulfillment:', error);
+      console.error('❌ Error processing fulfillment:', error);
+    }
+  }
+
+  // Check and capture PayPal payment
+  async capturePayPalPayment(orderId: string, token: string): Promise<boolean> {
+    try {
+      console.log('🔄 Capturing PayPal payment for order:', orderId, 'token:', token);
+      
+      const adminClient = createServiceClient();
+      
+      // Get order details
+      const { data: order } = await adminClient
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (!order || order.status !== 'pending' || order.payment_method !== 'paypal') {
+        console.log('❌ Order not eligible for PayPal capture');
+        return false;
+      }
+
+      // Get PayPal credentials
+      const clientId = import.meta.env.VITE_PAYPAL_CLIENT_ID || import.meta.env.PAYPAL_CLIENT_ID;
+      const clientSecret = import.meta.env.VITE_PAYPAL_CLIENT_SECRET || import.meta.env.PAYPAL_SECRET;
+      const apiUrl = import.meta.env.VITE_PAYPAL_API_URL || import.meta.env.PAYPAL_API_URL || 'https://api-m.paypal.com';
+      
+      if (!clientId || !clientSecret) {
+        console.error('PayPal credentials missing');
+        return false;
+      }
+
+      // Get access token
+      const tokenResp = await fetch(`${apiUrl}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Accept-Language': 'en_US',
+          'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=client_credentials'
+      });
+
+      if (!tokenResp.ok) {
+        const errText = await tokenResp.text();
+        console.error('PayPal token error:', errText);
+        return false;
+      }
+
+      const tokenData = await tokenResp.json();
+      const accessToken = tokenData.access_token;
+
+      // Capture order
+      const captureResp = await fetch(`${apiUrl}/v2/checkout/orders/${token}/capture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      const captureData = await captureResp.json();
+      
+      if (!captureResp.ok) {
+        console.error('PayPal capture error:', captureData);
+        // Update order status to failed
+        await adminClient.from('orders').update({ 
+          status: 'failed',
+          updated_at: new Date().toISOString()
+        }).eq('id', order.id);
+        return false;
+      }
+
+      console.log('✅ PayPal payment captured successfully');
+
+      // Update order status to paid
+      await adminClient.from('orders').update({ 
+        status: 'paid',
+        updated_at: new Date().toISOString()
+      }).eq('id', order.id);
+
+      // Process fulfillment
+      await this.processFulfillment(order.id);
+
+      return true;
+    } catch (err) {
+      console.error('❌ Error capturing PayPal payment:', err);
+      return false;
+    }
+  }
+
+  // Check crypto payment status
+  async checkCryptoPaymentStatus(orderId: string, paymentId: string): Promise<boolean> {
+    try {
+      console.log('🔄 Checking crypto payment status for order:', orderId);
+      
+      const adminClient = createServiceClient();
+      
+      // Get order details
+      const { data: order } = await adminClient
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (!order || order.status !== 'pending' || order.payment_method !== 'crypto') {
+        console.log('❌ Order not eligible for crypto status check');
+        return false;
+      }
+
+      const apiKey = import.meta.env.VITE_NOWPAYMENTS_API_KEY || import.meta.env.NOWPAYMENTS_API_KEY;
+      const apiUrl = import.meta.env.VITE_NOWPAYMENTS_API_URL || import.meta.env.NOWPAYMENTS_API_URL || 'https://api.nowpayments.io/v1';
+      
+      if (!apiKey) {
+        console.warn('NOWPayments API key missing');
+        return false;
+      }
+
+      const response = await fetch(`${apiUrl}/payment/${paymentId}`, {
+        method: 'GET',
+        headers: {
+          'x-api-key': apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error('NOWPayments status error:', errData);
+        return false;
+      }
+
+      const statusData = await response.json();
+      const status = statusData.payment_status;
+      
+      console.log('💰 Crypto payment status:', status);
+
+      if (status === 'finished') {
+        console.log('✅ Crypto payment confirmed');
+        
+        // Update order status to paid
+        await adminClient.from('orders').update({ 
+          status: 'paid',
+          updated_at: new Date().toISOString()
+        }).eq('id', order.id);
+
+        // Process fulfillment
+        await this.processFulfillment(order.id);
+        return true;
+      } else if (status === 'failed' || status === 'expired') {
+        console.log('❌ Crypto payment failed/expired');
+        
+        // Update order status to failed
+        await adminClient.from('orders').update({ 
+          status: 'failed',
+          updated_at: new Date().toISOString()
+        }).eq('id', order.id);
+        return false;
+      }
+
+      return false;
+    } catch (err) {
+      console.error('❌ Error checking crypto payment status:', err);
+      return false;
+    }
+  }
+
+  // Check Edahabia payment status
+  async checkEdahabiaPaymentStatus(orderId: string, checkoutId: string): Promise<boolean> {
+    try {
+      console.log('🔄 Checking Edahabia payment status for order:', orderId);
+      
+      const adminClient = createServiceClient();
+      
+      // Get order details
+      const { data: order } = await adminClient
+        .from('orders')
+        .select('*')
+        .eq('id', orderId)
+        .single();
+
+      if (!order || order.status !== 'pending' || order.payment_method !== 'edahabia') {
+        console.log('❌ Order not eligible for Edahabia status check');
+        return false;
+      }
+
+      const apiKey = import.meta.env.VITE_CHARGILY_API_KEY || import.meta.env.CHARGILY_API_KEY;
+      const apiUrl = import.meta.env.VITE_CHARGILY_API_URL || import.meta.env.CHARGILY_API_URL || 'https://pay.chargily.com/api/v2';
+      
+      if (!apiKey) {
+        console.warn('Chargily API key missing');
+        return false;
+      }
+
+      const response = await fetch(`${apiUrl}/checkouts/${checkoutId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error('Chargily status error:', errData);
+        return false;
+      }
+
+      const statusData = await response.json();
+      const status = statusData.status;
+      
+      console.log('💳 Edahabia payment status:', status);
+
+      if (status === 'paid') {
+        console.log('✅ Edahabia payment confirmed');
+        
+        // Update order status to paid
+        await adminClient.from('orders').update({ 
+          status: 'paid',
+          updated_at: new Date().toISOString()
+        }).eq('id', order.id);
+
+        // Process fulfillment
+        await this.processFulfillment(order.id);
+        return true;
+      } else if (status === 'failed' || status === 'expired') {
+        console.log('❌ Edahabia payment failed/expired');
+        
+        // Update order status to failed
+        await adminClient.from('orders').update({ 
+          status: 'failed',
+          updated_at: new Date().toISOString()
+        }).eq('id', order.id);
+        return false;
+      }
+
+      return false;
+    } catch (err) {
+      console.error('❌ Error checking Edahabia payment status:', err);
+      return false;
     }
   }
 
@@ -570,7 +815,7 @@ class PaymentService {
       message += `\n✅ *حالة الدفع:* مدفوع\n`;
       message += `\n🎉 العميل حصل على منتجاته!`;
       
-      // Send to Telegram (you'll need to implement this with your bot token)
+      // Send to Telegram
       const telegramUrl = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
       
       await fetch(telegramUrl, {
@@ -585,12 +830,19 @@ class PaymentService {
         })
       });
       
-      console.log('Telegram notification sent successfully');
+      // Mark as notified
+      const adminClient = createServiceClient();
+      await adminClient
+        .from('orders')
+        .update({ telegram_notified: true })
+        .eq('id', order.id);
+      
+      console.log('📱 Telegram notification sent successfully');
     } catch (error) {
-      console.error('Failed to send Telegram notification:', error);
-      // Don't throw error to avoid breaking the order process
+      console.error('❌ Failed to send Telegram notification:', error);
     }
   }
+
   private generateOrderNumber(): string {
     const timestamp = Date.now().toString();
     const random = Math.random().toString(36).substr(2, 5).toUpperCase();
